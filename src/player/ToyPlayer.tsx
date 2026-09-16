@@ -1,23 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { ToyDefinition, ToyMode, TransformationState, BonusRoundSnapshot } from '../toys/types';
 import { ToySession } from './ToySession';
 import { CollectionIcon, ResetIcon, SoundIcon } from './Icons';
 import { BonusPreview } from './BonusPreview';
 
-export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChange, collectionOpen, onOpenCollection }: {
+export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChange, volume, onVolumeChange, collectionOpen, onOpenCollection }: {
   toy: ToyDefinition;
   mode: ToyMode;
   paused: boolean;
   reducedMotion: boolean;
   sound: boolean;
   onSoundChange(enabled: boolean): void;
+  volume: number;
+  onVolumeChange(volume: number): void;
   collectionOpen: boolean;
   onOpenCollection(): void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const session = useRef<ToySession | null>(null);
-  const latest = useRef({ paused, reducedMotion, sound, onSoundChange });
-  latest.current = { paused, reducedMotion, sound, onSoundChange };
+  const latest = useRef({ paused, reducedMotion, sound, volume, onSoundChange });
+  latest.current = { paused, reducedMotion, sound, volume, onSoundChange };
   const [sessionStatus, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [settled, setSettled] = useState<{ definition: ToyDefinition | null; generation: number }>({ definition: null, generation: -1 });
   const [interacting, setInteracting] = useState(false);
@@ -59,6 +61,7 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
 
   useEffect(() => { session.current?.setPaused(paused); }, [paused]);
   useEffect(() => { session.current?.setReducedMotion(reducedMotion); }, [reducedMotion]);
+  useEffect(() => { session.current?.setVolume(volume); }, [volume]);
 
   const toggleSound = async () => {
     const current = session.current;
@@ -69,6 +72,12 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
     if (session.current === current) setAudioBusy(false);
   };
   const reset = () => status === 'error' ? setGeneration(value => value + 1) : session.current?.reset();
+  const volumePercent = Math.round(volume * 100);
+  const changeVolume = (next: number) => {
+    const normalized = Math.max(0, Math.min(1, next));
+    onVolumeChange(normalized);
+    session.current?.setVolume(normalized);
+  };
   const previewTransformation = (enabled: boolean) => {
     setTransformed(enabled); session.current?.setTransformation(enabled);
   };
@@ -100,7 +109,18 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
       {copy.rotationHint && <p id="toy-rotation-instructions" className="sr-only">{copy.rotationHint}</p>}
       <div className="control-cluster">
         <div className="control-pill floating-surface">
-          {supportsSound && <><button className="sound-toggle" onClick={toggleSound} disabled={status !== 'ready' || audioBusy} aria-pressed={sound} aria-label={sound ? `Mute ${toy.name.toLowerCase()} sounds` : `Enable ${toy.name.toLowerCase()} sounds`}><SoundIcon enabled={sound} /></button><span className="control-divider" /></>}
+          {supportsSound && <>
+            <button className="sound-toggle" onClick={toggleSound} disabled={status !== 'ready' || audioBusy} aria-pressed={sound} aria-label={sound ? `Mute ${toy.name.toLowerCase()} sounds` : `Enable ${toy.name.toLowerCase()} sounds`}><SoundIcon enabled={sound} /></button>
+            <label className="volume-control" title={`Volume ${volumePercent}%`}>
+              <span className="sr-only">{toy.name} volume</span>
+              <input className="volume-slider" type="range" min="0" max="100" step="5" value={volumePercent}
+                disabled={status !== 'ready' || audioBusy} aria-label={`${toy.name} volume`} aria-valuetext={`${volumePercent}%`}
+                onChange={event => changeVolume(Number(event.currentTarget.value) / 100)}
+                style={{ '--volume-level': `${volumePercent}%` } as CSSProperties} />
+              <output aria-hidden="true">{volumePercent}%</output>
+            </label>
+            <span className="control-divider" />
+          </>}
           <button onClick={reset} disabled={status === 'loading'} aria-label={`Reset ${toy.name.toLowerCase()}`}><ResetIcon /><span>Reset</span></button>
         </div>
         <button className="collection-trigger floating-surface" onClick={onOpenCollection} aria-label="Open collection of toys" aria-haspopup="dialog" aria-expanded={collectionOpen}><CollectionIcon /><span className="collection-label-full">Collection</span><span className="collection-label-short" aria-hidden="true">Toys</span></button>

@@ -264,6 +264,7 @@ export function mountSlice(host: HTMLElement, context: ToyContext, kind: SliceKi
   return {
     reset, dispose,
     async setSound(enabled) { if (disposed) return; await audio.setEnabled(enabled); if (!disposed) { diagnostics(); wake(); } },
+    setVolume(volume) { if (!disposed) audio.setVolume(volume); },
     setPaused(value) { if (disposed) return; paused = value; keys.clear(); release(true); audio.setPaused(value); left.disabled = right.disabled = value;
       if (value) { cancelAnimationFrame(frame); frame = 0; } else wake(); diagnostics(); },
     setReducedMotion(value) { if (disposed) return; reduced = value; model.step(.01, value); draw(); wake(); },

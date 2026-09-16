@@ -237,7 +237,7 @@ test('field surface pauses, aborts, and cleans up its engine exactly once', () =
   try {
     const host = new FakeElement(), abort = new AbortController();
     host.getBoundingClientRect = () => ({left:0,top:0,width,height:600});
-    const context: ToyContext = { signal: abort.signal, preferences: { paused: false, reducedMotion: false, sound: false }, theme: { background: '#000', foreground: '#fff', accent: '#fff', muted: '#aaa', surface: '#111', border: '#333' }, onInteractionChange() {}, onError(message: string) { throw new Error(message); } };
+    const context: ToyContext = { signal: abort.signal, preferences: { paused: false, reducedMotion: false, sound: false, volume: .8 }, theme: { background: '#000', foreground: '#fff', accent: '#fff', muted: '#aaa', surface: '#111', border: '#333' }, onInteractionChange() {}, onError(message: string) { throw new Error(message); } };
     const controller = mountField(host as unknown as HTMLElement, context, 'Test field', () => ({
       releaseInputOnResize: true,
       resize() {}, draw(_dt,_time,pointer) { draws++; lastDown = pointer.down; }, reset() { resets++; }, dispose() { disposals++; },

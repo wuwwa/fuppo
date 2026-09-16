@@ -1,4 +1,5 @@
 import type { ToyController, ToyDefinition, ToyPreferences, TransformationState, BonusRoundSnapshot } from '../toys/types';
+import { normalizeVolume } from '../audio/volume';
 
 export interface SessionEvents {
   onReady(supportsSound: boolean): void;
@@ -24,7 +25,7 @@ export class ToySession {
     private readonly host: HTMLElement,
     private readonly events: SessionEvents,
     preferences: ToyPreferences,
-  ) { this.preferences = { ...preferences }; }
+  ) { this.preferences = { ...preferences, volume: normalizeVolume(preferences.volume) }; }
 
   private get active() { return !this.disposed && !this.failed; }
 
@@ -46,6 +47,7 @@ export class ToySession {
       if (!this.active) { this.destroy(controller); return; }
       if (!controller) throw new Error('This toy could not start. Please try again.');
       this.controller = controller;
+      controller.setVolume?.(this.preferences.volume);
       controller.setReducedMotion?.(this.preferences.reducedMotion);
       controller.setPaused?.(this.preferences.paused);
       this.events.onReady(typeof controller.setSound === 'function');
@@ -74,6 +76,13 @@ export class ToySession {
     if (!this.active) return;
     try { this.controller?.setReducedMotion?.(reduced); }
     catch { this.fail('This toy could not update its motion settings. Please try again.'); }
+  }
+
+  setVolume(volume: number) {
+    this.preferences.volume = normalizeVolume(volume);
+    if (!this.active) return;
+    try { this.controller?.setVolume?.(this.preferences.volume); }
+    catch { this.fail('This toy could not update its sound level. Please try again.'); }
   }
 
   setTransformation(enabled: boolean) {

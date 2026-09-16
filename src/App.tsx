@@ -4,6 +4,7 @@ import { ToyPlayer } from './player/ToyPlayer';
 import { resolveToyRoute, toyLocationHref } from './player/navigation';
 import type { ToyDefinition } from './toys/types';
 import { readPreferences, writePreferences } from './player/preferences';
+import { normalizeVolume } from './audio/volume';
 
 // Access to localStorage itself can throw in restricted browsing contexts.
 const preferenceStorage = {
@@ -18,6 +19,7 @@ export function App() {
   const [mode, setMode] = useState(initialRoute.mode);
   const [collectionOpen, setCollectionOpen] = useState(false);
   const [sound, setSound] = useState(false);
+  const volume = normalizeVolume(preferences.volume);
   const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [hidden, setHidden] = useState(document.hidden);
   const Icon = toy.icon;
@@ -91,7 +93,9 @@ export function App() {
     <header className="masthead">
       <button className="wordmark" onClick={() => setCollectionOpen(true)} aria-label="Open toy collection" aria-haspopup="dialog"><Icon /><span>{toy.name.toLowerCase()}<span className="wordmark-dot">.</span></span></button>
     </header>
-    <ToyPlayer key={toy.id} toy={toy} mode={mode} paused={collectionOpen || hidden} reducedMotion={reducedMotion} sound={sound} onSoundChange={setSound} collectionOpen={collectionOpen} onOpenCollection={() => setCollectionOpen(true)} />
+    <ToyPlayer key={toy.id} toy={toy} mode={mode} paused={collectionOpen || hidden} reducedMotion={reducedMotion} sound={sound} onSoundChange={setSound}
+      volume={volume} onVolumeChange={next => setPreferences(value => ({ ...value, volume: normalizeVolume(next) }))}
+      collectionOpen={collectionOpen} onOpenCollection={() => setCollectionOpen(true)} />
     <Collection open={collectionOpen} selected={toy} favoriteIds={preferences.favoriteIds}
       onToggleFavorite={id => setPreferences(value => ({ ...value, favoriteIds: value.favoriteIds.includes(id) ? value.favoriteIds.filter(item => item !== id) : [...value.favoriteIds, id] }))}
       onClose={() => setCollectionOpen(false)} onSelect={selectToy} />

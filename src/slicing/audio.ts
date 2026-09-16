@@ -1,4 +1,5 @@
 import { loadFoley, type FoleyBank, type FoleyLoader } from '../audio/foley';
+import { DEFAULT_AUDIO_VOLUME, normalizeVolume } from '../audio/volume';
 
 const unit = (value: number) => Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
 type Voice = { source: AudioBufferSourceNode; gain: GainNode };
@@ -22,6 +23,7 @@ export class SliceAudio {
   private touching = false;
   private accentAt = -Infinity;
   private level = 0;
+  private volume = DEFAULT_AUDIO_VOLUME;
   enabled = false;
   constructor(private pitch = 1, private createContext: () => AudioContext = () => new AudioContext(), private load: FoleyLoader = loadFoley) {
     this.pitch = Number.isFinite(pitch) ? Math.max(.8, Math.min(1.2, pitch)) : 1;
@@ -60,7 +62,14 @@ export class SliceAudio {
       this.bed.loop = true; this.bed.playbackRate.value = this.pitch;
       this.bed.connect(this.pull!); this.nodes.push(this.bed); this.bed.start();
     }
-    this.enabled = true; this.master!.gain.setTargetAtTime(this.paused ? 0 : .72, ctx.currentTime, .025);
+    this.enabled = true; this.master!.gain.setTargetAtTime(this.paused ? 0 : this.volume, ctx.currentTime, .025);
+  }
+  setVolume(volume: number) {
+    this.volume = normalizeVolume(volume);
+    if (!this.context || !this.master) return;
+    const now = this.context.currentTime;
+    this.master.gain.cancelScheduledValues(now);
+    this.master.gain.setTargetAtTime(this.enabled && !this.paused ? this.volume : 0, now, .015);
   }
   private playPlop(gain: number, pitch: number) {
     const ctx = this.context!;
@@ -111,8 +120,8 @@ export class SliceAudio {
     for (const voice of this.voices) voice.source.stop(now + .065);
   }
   setPaused(paused: boolean) { this.paused = paused; this.reset(); }
-  reset() { this.stop(); if (!this.paused && this.enabled && this.context) this.master!.gain.setTargetAtTime(.72, this.context.currentTime, .025); }
-  get diagnostics() { return { enabled: this.enabled, state: this.context?.state ?? 'uncreated', level: this.level, sources: Number(!!this.bed) + this.voices.length, paused: this.paused }; }
+  reset() { this.stop(); if (!this.paused && this.enabled && this.context) this.master!.gain.setTargetAtTime(this.volume, this.context.currentTime, .025); }
+  get diagnostics() { return { enabled: this.enabled, state: this.context?.state ?? 'uncreated', level: this.level, sources: Number(!!this.bed) + this.voices.length, paused: this.paused, volume: this.volume }; }
   dispose() {
     if (this.disposed) return;
     this.stop(); this.disposed = true; this.enabled = false; ++this.revision;

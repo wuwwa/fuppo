@@ -10,7 +10,7 @@ function ButterIcon() {
 
 export const butter: ToyDefinition = {
   id: 'butter', preview: '/previews/butter.webp', name: 'Butter',
-  description: 'A butter stick to press flat and watch slowly rise.',
+  description: 'Press it flat, stretch the sticky base, and peel it free.',
   icon: ButterIcon,
   theme: {
     background: '#f3ecdb', foreground: '#57462d', accent: '#987233',
@@ -18,8 +18,8 @@ export const butter: ToyDefinition = {
   },
   copy: {
     loading: 'Unwrapping butter',
-    instructions: ['Hold to squish', 'Let go & watch it rise'],
-    touchInstructions: ['Hold to squish', 'Let go & watch it rise'],
+    instructions: ['Hold to squish', 'Keep pulling to peel it free'],
+    touchInstructions: ['Hold to squish', 'Keep pulling to peel it free'],
     ...softBodyControls,
   },
   load: () => import('../butter/entry'),

@@ -1,6 +1,8 @@
 import type { FoleyMaterial } from '../audio/foley';
+import type { AdhesionFeel } from './adhesion';
 
 export interface SoftBodyFeel {
+  adhesion?: AdhesionFeel;
   foam?: { lateralExpansion: number; recoveryTime: number; volumeCompliance: number; maxCompression: number };
   kneading?: { followRate:number; speedLimit:number; workRate:number };
   plasticity?: { dwell:number; yield:number; rate:number; maxOffset:number; maxCompression:number };
@@ -73,6 +75,7 @@ export const cushionProfile: SoftToyProfile = {
   label: 'memory cushion', shape: 'cushion',
   reaction: { kind:'solid' },
   feel: {
+    adhesion: { onset: .7, distance: 1.05, rate: .95 },
     stiffness: 7, damping: 18, edgeCompliance: 0.0035,
     dragLimit: 1.25, pressDragLimit: 0.58, pullCompliance: 0.000009, pullReleaseTime: 0.8, grabStrength: 650,
     pressDepth: 0.22, holdDepth: 0.42, creepTime: 1.1,
@@ -95,6 +98,7 @@ export const butterProfile: SoftToyProfile = {
   reaction: { kind: 'solid' },
   feel: {
     ...cushionProfile.feel,
+    adhesion: { onset: .62, distance: 1.1, rate: .82 },
     foam: { lateralExpansion: 0.10, recoveryTime: 1.6, volumeCompliance: 0.0015, maxCompression: 0.72 },
     stiffness: 5, damping: 26, edgeCompliance: 0.025,
     dragLimit: 0.7, pressDragLimit: 0.42, pullReleaseTime: 1.4,
@@ -117,6 +121,7 @@ export const loopProfile: SoftToyProfile = {
   reaction: { kind:'pop', threshold:2.7, relaxation:1.0, strainOnset:0.38 },
   feel: {
     ...jellyProfile.feel,
+    adhesion: { onset: .82, distance: 1.05, rate: 1.05 },
     stiffness: 24, damping: 5.8, edgeCompliance: 0.0019,
     dragLimit: 1.35, pressDragLimit: 0.85, pullCompliance: 0.000013, pullReleaseTime: 0.3,
     pressDepth: 0.25, holdDepth: 0.37, creepTime: 0.24,
@@ -137,6 +142,7 @@ export const starProfile: SoftToyProfile = {
   reaction: { kind:'solid' },
   feel: {
     ...jellyProfile.feel,
+    adhesion: { onset: .72, distance: 1.05, rate: .95 },
     stiffness: 12, damping: 11, edgeCompliance: 0.0028,
     dragLimit: 1.3, pressDragLimit: 0.8, pullCompliance: 0.000014, pullReleaseTime: 0.55,
     grabStrength: 800, pressDepth: 0.23, holdDepth: 0.39, creepTime: 0.65,
@@ -157,6 +163,7 @@ export const dumplingProfile: SoftToyProfile = {
   reaction: { kind:'solid' },
   feel: {
     ...cushionProfile.feel,
+    adhesion: undefined,
     stiffness: 5.5, damping: 20, edgeCompliance: 0.0038,
     dragLimit: 1.15, pressDragLimit: 0.65, pullCompliance: 0.000013, pullReleaseTime: 1.05,
     grabStrength: 720, pressDepth: 0.20, holdDepth: 0.40, creepTime: 1.3,
@@ -176,6 +183,7 @@ export const puttyProfile: SoftToyProfile = {
   label:'soft putty', shape:'putty', reaction:{kind:'solid'},
   feel:{
     ...cushionProfile.feel,
+    adhesion: { onset: .8, distance: 1.1, rate: .8 },
     stiffness:14, damping:19, edgeCompliance:0.0028,
     dragLimit:1.1, pressDragLimit:0.72, pullCompliance:0.000022, pullReleaseTime:0.65,
     grabStrength:850, pressDepth:0.20, holdDepth:0.38, creepTime:0.85,

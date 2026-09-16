@@ -100,7 +100,7 @@ test('the cushion releases an upward pull gradually and then recovers completely
   assert.ok(body.diagnostics().speed < 0.02);
 });
 
-test('sustained extreme pulls remain anchored and recover without leaving a stretched skin', () => {
+test('sustained extreme pulls remain bounded and recover after anchored stretching or peeling', () => {
   for (const profile of [jellyProfile, cushionProfile]) {
     const body = new SoftBodyPhysics(profile.feel);
     const points = surfacePoints(profile);
@@ -117,7 +117,8 @@ test('sustained extreme pulls remain anchored and recover without leaving a stre
       assert.ok(Math.abs(state.volumeRatio - 1) < 0.15 && state.minVolumeRatio > 0.25, JSON.stringify(state));
       for (let i = 1; i < body.positions.length; i += 3) assert.ok(body.positions[i] >= FLOOR);
       const baseTravel = distance(sample(body, points.base), base);
-      assert.ok(baseTravel < 0.2, `${profile.label}: extreme pull moved the base ${baseTravel.toFixed(4)}`);
+      if(profile.feel.adhesion) assert.ok(baseTravel < 1.3, `${profile.label}: peel left the stage`);
+      else assert.ok(baseTravel < 0.2, `${profile.label}: extreme pull moved the base ${baseTravel.toFixed(4)}`);
     }
     assert.ok(distance(sample(body, points.front.point), initial) > 0.5, 'A sustained pull should visibly hold the skin out');
     body.release();

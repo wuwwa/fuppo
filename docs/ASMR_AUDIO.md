@@ -27,7 +27,7 @@ These are edited foley analogues, not claims that every physical toy was recorde
 
 ## Playback and preparation
 
-`python scripts/prepare-asmr.py` rebuilds the checked-in WAVs using Python 3 and FFmpeg. It caches source media under `.local/asmr-sources/`; build/deployment needs neither FFmpeg nor source downloads. Output is mono 32 kHz PCM16, high-passed at 90 Hz, filtered per material, lightly denoised and faded. Accents are mostly 0.11-0.32 seconds. Motion clips are slowed without pitch shifting, gently compressed and joined with a short loop seam. Normalization targets 0.055 RMS with a 0.50 peak ceiling; runtime gain is quieter again.
+`python scripts/prepare-asmr.py` rebuilds the checked-in WAVs using Python 3 and FFmpeg. It caches source media under `.local/asmr-sources/`; build/deployment needs neither FFmpeg nor source downloads. Output is mono 32 kHz PCM16, high-passed at 90 Hz, filtered per material, lightly denoised and faded. Accents are mostly 0.11-0.32 seconds. Motion clips are slowed without pitch shifting, gently compressed and joined with a short loop seam. Normalization targets 0.055 RMS with a 0.50 peak ceiling. The shared player starts at 80% volume, remembers volume locally, and exposes a 0–100 meter without enabling sound until the user consents.
 
 Release and motion are intentionally less prominent than contact. Pops use shortened contacts from their own material, not a universal splat. Banks load on sound enable, decode once, stay on the local origin, and recover from failed downloads on retry. Versioned `v2-` filenames avoid stale first-pass recordings in the browser. Voice caps and mute/disposal guards remain in place. The Fly image includes the audio directory.
 

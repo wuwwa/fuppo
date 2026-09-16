@@ -8,7 +8,8 @@ const backend=process.argv.includes('--webgl')?'webgl':'webgpu';
 const interruptionsOnly=process.argv.includes('--interruptions-only');
 const puttyOnly=process.argv.includes('--putty');
 const doughOnly=process.argv.includes('--dough');
-const reportName=`${doughOnly?'dough':puttyOnly?'putty':'turn'}-${backend}${interruptionsOnly?'-interruptions':''}-results.json`;
+const peelOnly=process.argv.includes('--peel');
+const reportName=`${peelOnly?'peel':doughOnly?'dough':puttyOnly?'putty':'turn'}-${backend}${interruptionsOnly?'-interruptions':''}-results.json`;
 const origin=process.env.QA_ORIGIN ?? 'http://127.0.0.1:5174';
 const artifacts=resolve('qa/artifacts');await mkdir(artifacts,{recursive:true});
 const profile=await mkdtemp(join(tmpdir(),'codex-jelly-turn-'));
@@ -112,6 +113,10 @@ try {
       if(message.error)request.reject(new Error(JSON.stringify(message.error)));else request.resolve(message.result);
     } else if(message.method==='Runtime.exceptionThrown' || message.method==='Log.entryAdded' && message.params.entry.level==='error')errors.push(message);
   });
+  if(peelOnly) {
+    const {runPeelChecks}=await import('./peel-checks.mjs');
+    await runPeelChecks({load,reset,click,send,evaluate,diagnostics,waitFor,delay,touch,viewport,screenshot,record});
+  }
   if(puttyOnly) {
     const {runPuttyChecks}=await import('./putty-checks.mjs');
     await runPuttyChecks({load,reset,click,send,evaluate,diagnostics,waitFor,delay,touch,viewport,screenshot,record});
@@ -137,7 +142,7 @@ try {
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
     await reset();
   }
-  for(const toy of interruptionsOnly || puttyOnly || doughOnly?[]:['cushion','jelly','loop']) {
+  for(const toy of interruptionsOnly || puttyOnly || doughOnly || peelOnly?[]:['cushion','jelly','loop']) {
     const neutral=await load(toy);await reset();
     await screenshot(`${toy}-rest`);
     for(const gesture of ['pinch','translation']) {

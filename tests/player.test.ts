@@ -6,7 +6,7 @@ import { toys, findToy, toyHref } from '../src/toys/registry.ts';
 import type { ToyContext, ToyController, ToyModule, ToyPreferences } from '../src/toys/types.ts';
 
 const host = {} as HTMLElement;
-const defaults: ToyPreferences = { sound: false, reducedMotion: false, paused: false };
+const defaults: ToyPreferences = { sound: false, volume: 0.8, reducedMotion: false, paused: false };
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: Error) => void;
@@ -72,24 +72,36 @@ test('a late mount is disposed once and cannot replace the new toy', async () =>
 
 test('latest preferences are delivered even if they change during loading', async () => {
   const loading = deferred<ToyModule>();
-  const calls: [string, boolean][] = [];
+  const calls: [string, boolean | number][] = [];
   let context!: ToyContext;
   const { player, ready } = session(() => loading.promise);
   const starting = player.start();
-  player.setPaused(true); player.setReducedMotion(true); await player.setSound(true);
+  player.setPaused(true); player.setReducedMotion(true); player.setVolume(.35); await player.setSound(true);
   loading.resolve({ mount: async (_host, ctx) => {
     context = ctx;
     return {
       reset() {}, dispose() {},
+      setVolume: value => { calls.push(['volume', value]); },
       setPaused: value => { calls.push(['pause', value]); },
       setReducedMotion: value => { calls.push(['motion', value]); },
       setSound: value => { calls.push(['sound', value]); },
     };
   } });
   await starting; await Promise.resolve();
-  assert.deepEqual(context.preferences, { sound: true, paused: true, reducedMotion: true });
-  assert.deepEqual(calls, [['motion', true], ['pause', true], ['sound', true]]);
+  assert.deepEqual(context.preferences, { sound: true, volume: .35, paused: true, reducedMotion: true });
+  assert.deepEqual(calls, [['volume', .35], ['motion', true], ['pause', true], ['sound', true]]);
   assert.deepEqual(ready, [true]); player.dispose();
+});
+
+test('volume changes are normalized and applied without enabling sound', async () => {
+  const calls: number[] = [];
+  const { player } = session(async () => ({ mount: async () => ({
+    reset() {}, dispose() {}, setSound() {}, setVolume(value) { calls.push(value); },
+  }) }));
+  await player.start();
+  player.setVolume(2); player.setVolume(-1); player.setVolume(Number.NaN);
+  assert.deepEqual(calls, [.8, 1, 0, .8]);
+  player.dispose();
 });
 
 test('asynchronous sound changes finish in order and audio failure is nonfatal', async () => {

@@ -149,7 +149,8 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
       const compression=physics.compressionAmount*(response.bursting?1-recoveryAt(response.age):1);
       opticalDepth.value=finish.thickness/Math.sqrt(1-compression);
       contact.shadow.scale.setScalar((1-compression)**(-0.5*(profile.feel.foam?.lateralExpansion ?? 1)));
-      contact.shadow.material.opacity=entrance.shadow;
+      const peel=physics.adhesion;
+      contact.shadow.material.opacity=entrance.shadow*(1-.68*(peel?.progress ?? 0));
       contact.shadow.rotation.set(-Math.PI/2,0,rotation.angle);
       jelly.updateMatrixWorld();
     };
@@ -210,6 +211,7 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
     const keyboardDirection=new THREE.Vector3(),keyboardOrigin=new THREE.Vector3(),keyboardNormal=new THREE.Vector3(0,1,0);
     const keyboardRippleOrigin=new THREE.Vector3();
     let keyboardTwist=0,keyboardStrength=0.5,keyboardStartedAt=0;
+    let peelReleases=0;
     let gestureMotion=0,lastAudioCompression=0;
     let interactionCount=0, peakDisplacement=0;
     const setRay=(x:number,y:number)=>{
@@ -288,7 +290,7 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
       if(!physics.beginGrab(localAnchor,contact.normal,event.pointerId)) {
         pointers.end(event.pointerId);syncInteraction();return;
       }
-      doughVolume?.fold.begin(event.pointerId,localAnchor);
+      doughVolume?.fold.begin(event.pointerId,physics.adhesion?.unmap(localAnchor) ?? localAnchor);
       pairTurns.begin(event.pointerId,event.clientX,event.clientY);
       interactionCount++;
       physics.impulse(localAnchor,contact.normal.clone().negate(),profile.feel.pokeKick);
@@ -328,7 +330,7 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
         contact.offset.copy(offset);
         contact.dragLength=contact.offset.length();
         contact.strength=Math.min(1,contact.dragLength);
-        physics.moveGrab(offset,event.pointerId);
+        physics.moveGrab(offset,event.pointerId,intersection,dragPressure(intersection,contact.normal));
       }
     };
     const up=(event:PointerEvent)=>{
@@ -360,7 +362,7 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
       if(!physics.beginGrab(localAnchor,keyboardNormal,KEYBOARD_CONTACT)){
         keyboard=false;syncInteraction();return false;
       }
-      doughVolume?.fold.begin(KEYBOARD_CONTACT,localAnchor);
+      doughVolume?.fold.begin(KEYBOARD_CONTACT,physics.adhesion?.unmap(localAnchor) ?? localAnchor);
       interactionCount++;
       physics.impulse(localAnchor,keyboardNormal.clone().negate(),profile.feel.pokeKick);
       if(!physics.reducedMotion)ripples.add(keyboardRippleOrigin,profile.rippleStrength);
@@ -437,7 +439,11 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
       // multiply volume, and motion decays even while a stretched pose is held.
       const handMotion=1-Math.exp(-(physics.kneading?Math.max(physics.kneading.motion,doughVolume?.fold.motion??0):movement/seconds)*0.45);
       const creepMotion=Math.min(0.12,Math.abs(compression-lastAudioCompression)/Math.max(elapsed,STEP)*0.08);
-      gestureMotion=contacts?Math.max(gestureMotion*Math.exp(-elapsed/0.1),handMotion,creepMotion):0;
+      gestureMotion=contacts?Math.max(gestureMotion*Math.exp(-elapsed/0.1),handMotion,creepMotion,(physics.adhesion?.motion ?? 0)*.7):0;
+      if(physics.adhesion) {
+        if(physics.adhesion.releases>peelReleases) audio.play('release',1);
+        peelReleases=physics.adhesion.releases;
+      }
       lastAudioCompression=compression;
       audio.update({contacts,compression,stretch:Math.min(1,stretch),motion:gestureMotion,
         twist:THREE.MathUtils.clamp(Math.abs(physics.twistAmount)/0.8,0,1)});
@@ -446,6 +452,8 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
     const updateMaterialResponse=(elapsed:number)=>{
       const wasBursting=response.bursting;
       if(!wasBursting) physics.measureStrain(strain);
+      // Peeling relieves the load at the floor before it can burst the loop.
+      if(physics.adhesion?.active) strain.strain=0;
       const popped=response.step(elapsed,strain);
       if(popped) {
         burst?.trigger(strain.point,strain.direction);
@@ -478,12 +486,12 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
           (keys.has('ArrowUp')?1:0)-(keys.has('ArrowDown')?1:0),0).clampLength(0,1);
         keyboardDirection.applyQuaternion(camera.quaternion).multiplyScalar(elapsed*1.1);
         localDragDelta(keyboardDirection,keyboardOrigin,inverseDragMatrix.copy(jelly.matrixWorld).invert(),keyboardDirection);
-        keyboardOffset.add(keyboardDirection).clampLength(0,profile.feel.dragLimit*2);
+        keyboardOffset.add(keyboardDirection).clampLength(0,Math.max(profile.feel.dragLimit*2,profile.feel.adhesion?2.8:0));
         keyboardTwist=THREE.MathUtils.clamp(keyboardTwist+((keys.has('KeyE')?1:0)-(keys.has('KeyQ')?1:0))*elapsed*1.45,-0.8,0.8);
         doughVolume?.fold.move(KEYBOARD_CONTACT,keyboardOffset);
         const turning=doughVolume?.fold.controls(KEYBOARD_CONTACT);
         physics.setPressure(turning?0.08:pressureForDrag(keyboardOffset,keyboardNormal),KEYBOARD_CONTACT);
-        physics.moveGrab(turning?{x:0,y:0,z:0}:keyboardOffset,KEYBOARD_CONTACT);
+        physics.moveGrab(turning?{x:0,y:0,z:0}:keyboardOffset,KEYBOARD_CONTACT,keyboardOffset,dragPressure(keyboardOffset,keyboardNormal));
         physics.setTwist(keyboardTwist,KEYBOARD_CONTACT);
         keyboardStrength=Math.max(0.5,Math.min(1,keyboardOffset.length()));
         keyboardMovement=keyboardOffset.distanceTo(keyboardPreviousOffset)+Math.abs(keyboardTwist-previousTwist)*0.5;
@@ -558,6 +566,7 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
     return {
       reset:()=>{endAll();rotation.reset();updatePose();audio.stop();response.reset();burst?.clear();physics.reset();doughVolume?.reset();ripples.clear();requestFrame();},
       setSound:async(enabled)=>{await audio.setEnabled(enabled);requestFrame();},
+      setVolume:(volume)=>{audio.setVolume(volume);requestFrame();},
       setPaused:(value)=>{paused=value;if(value){endAll();audio.stop();}lastTime=0;accumulator=0;if(!value)requestFrame();},
       setReducedMotion:(value)=>{physics.reducedMotion=value;if(value){ripples.clear();rotation.velocity=0;}requestFrame();},
       dispose,

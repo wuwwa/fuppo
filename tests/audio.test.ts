@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SoftBodyAudio, type AudioMotion } from '../src/soft-body/audio.ts';
 import type { FoleyBank, FoleyLoader } from '../src/audio/foley.ts';
+import { DEFAULT_AUDIO_VOLUME } from '../src/audio/volume.ts';
 
 class FakeParam {
   private current = 0;
@@ -220,7 +221,7 @@ test('disabled sound is silent and does not create an audio context', async () =
   assert.equal(audio.enabled, false);
   assert.equal(contextsCreated(), 0);
   assert.equal(context.nodes.length, 0);
-  assert.deepEqual(audio.diagnostics(), { enabled: false, contextState: 'uninitialized', transientVoices: 0, gestureActive: false });
+  assert.deepEqual(audio.diagnostics(), { enabled: false, contextState: 'uninitialized', transientVoices: 0, gestureActive: false, volume: DEFAULT_AUDIO_VOLUME });
   audio.dispose();
   assert.equal(context.closeCalls, 0);
 });
@@ -241,6 +242,20 @@ test('repeated and concurrent enabling creates one master connection', async () 
     assert.equal(context.masterConnections.length, 1);
     assert.equal(context.masterConnections[0].connections, 1);
   } finally { audio.dispose(); }
+});
+
+test('volume starts louder and updates the existing master without creating audio', async () => {
+  const { audio, context, contextsCreated } = audioFixture();
+  audio.setVolume(.35);
+  assert.equal(contextsCreated(), 0, 'Adjusting the meter must not imply sound consent');
+  await audio.setEnabled(true);
+  const master = context.masterConnections[0] as FakeGain;
+  assert.equal(master.gain.value, .35);
+  audio.setVolume(2); assert.equal(master.gain.value, 1);
+  audio.setVolume(-1); assert.equal(master.gain.value, 0);
+  audio.setVolume(Number.NaN); assert.equal(master.gain.value, DEFAULT_AUDIO_VOLUME);
+  assert.equal(contextsCreated(), 1);
+  audio.dispose();
 });
 
 test('one gesture voice is reused during continuous motion and stops when still', async () => {
@@ -316,7 +331,7 @@ test('pop uses a recorded snap with fades, bounded gain, and no oscillators', as
     assert.ok(source.buffer);
     assert.equal(source.loop, false);
     assert.ok(source.stopAt > .1 && source.stopAt < .2);
-    assert.equal((context.masterConnections[0] as FakeGain).gain.value, .48);
+    assert.equal((context.masterConnections[0] as FakeGain).gain.value, DEFAULT_AUDIO_VOLUME);
     const envelope = context.nodes.filter(node => node instanceof FakeGain).at(-1) as FakeGain;
     assert.equal(envelope.gain.values.at(-1), 0, 'Recording fades to silence');
     context.advance(.6);

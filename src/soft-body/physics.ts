@@ -4,6 +4,7 @@ import { jellyProfile, type SoftBodyFeel } from './profiles';
 import { pressureFrame, undoDeformation, twistWeight } from './pressure';
 import { PlasticMould } from './plasticity';
 import { KneadingMemory } from './kneading';
+import { FloorAdhesion, type PeelContact } from './adhesion';
 export const FLOOR = 0.04;
 const CELLS = 4;
 const SIDE = CELLS + 1;
@@ -21,7 +22,8 @@ export type Binding = { ids: number[]; weights: number[] };
 type Grab = { weights: Float64Array; target: Point; rawTarget:Point; consumedTarget:Point; filtered: Point;
   anchor: Point; localAnchor: Point; restAnchor:Point; normal: Point; verticalLoad: number; manualTwist:number;
   contact:Binding; contactStart:Point; contactRest:Point; contactLambda:Float64Array; start:Float64Array;
-  age:number; pressure:number; dentDepth:number; pulling:number; folding:number };
+  age:number; pressure:number; dentDepth:number; pulling:number; folding:number; peelStart:Point;
+  peelTarget:Point; peelPressure:number };
 const index = (x: number, y: number, z: number) => (y * SIDE + z) * SIDE + x;
 
 export class SoftBodyPhysics {
@@ -42,6 +44,9 @@ export class SoftBodyPhysics {
   private contactWeights = new Float64Array(COUNT);
   private plastic:PlasticMould|null=null;
   readonly kneading:KneadingMemory|null;
+  readonly adhesion:FloorAdhesion|null;
+  private readonly peelContacts:PeelContact[]=[];
+  private readonly peelOffset:Point={x:0,y:0,z:0};
   reducedMotion = false;
   private compression = 0;
   private previousCompression = 0;
@@ -113,6 +118,7 @@ export class SoftBodyPhysics {
 
   /** Cheap render-activity check; no volume calculations or allocations. */
   isAtRest() {
+    if(this.adhesion?.active) return false;
     if (this.grabs.size || Math.abs(this.compression-(this.plastic?.compression ?? 0)) > 0.00015 || Math.abs(this.compressionVelocity) > 0.001 ||
       Math.abs(this.twist) > 0.0003 || Math.abs(this.twistVelocity) > 0.001) return false;
     for (let i = 0; i < this.positions.length; i++) {
@@ -121,9 +127,12 @@ export class SoftBodyPhysics {
     return true;
   }
 
-  toMaterialPoint(point:Point) { return undoDeformation(point,this.compression,this.twist,this.feel.foam?.lateralExpansion); }
+  toMaterialPoint(point:Point) {
+    return undoDeformation(this.adhesion?.unmap(point) ?? point,this.compression,this.twist,this.feel.foam?.lateralExpansion);
+  }
 
   constructor(readonly feel: SoftBodyFeel = jellyProfile.feel) {
+    this.adhesion=feel.adhesion?new FloorAdhesion(feel.adhesion):null;
     this.kneading=feel.kneading?new KneadingMemory(COUNT,feel.kneading.workRate):null;
     for (let y = 0; y < SIDE; y++) for (let z = 0; z < SIDE; z++) for (let x = 0; x < SIDE; x++) {
       const i = index(x, y, z);
@@ -203,6 +212,10 @@ export class SoftBodyPhysics {
       output[v*3]=(px*cos+pz*sin)*pressure.width;
       output[v*3+2]=(pz*cos-px*sin)*pressure.width;
       output[v*3+1]=Math.max(FLOOR+0.005,pressure.y);
+      if(this.adhesion?.active) {
+        const offset=this.adhesion.offset(output[v*3],output[v*3+2],this.peelOffset,alpha);
+        output[v*3]+=offset.x;output[v*3+1]+=offset.y;output[v*3+2]+=offset.z;
+      }
     }
   }
 
@@ -211,6 +224,8 @@ export class SoftBodyPhysics {
     if(this.grabs.has(id) || this.grabs.size>=MAX_CONTACTS) return false;
     if(this.isAtRest()) this.pullRelaxation=0;
     const local=this.toMaterialPoint(point);
+    const unpeeled=this.adhesion?.unmap(point) ?? point;
+    const peelStart={x:point.x-unpeeled.x,y:point.y-unpeeled.y,z:point.z-unpeeled.z};
     // Recover the skin binding at the touched patch, including an existing dent.
     // Constraining this weighted point lets the visible skin follow a pull even
     // when the smoother cage interpolation would otherwise dilute its motion.
@@ -242,9 +257,10 @@ export class SoftBodyPhysics {
       weights[i] = Math.exp(-d2 / 0.52) * Math.min(1, height*3.5);
     }
     const grab:Grab={ weights, target: { x: 0, y: 0, z: 0 }, rawTarget:{x:0,y:0,z:0}, consumedTarget:{x:0,y:0,z:0}, filtered: { x: 0, y: 0, z: 0 },
-      anchor:{...point}, localAnchor:local, restAnchor:restPoint, normal, verticalLoad, manualTwist:0,
+      anchor:{...unpeeled}, localAnchor:local, restAnchor:restPoint, normal, verticalLoad, manualTwist:0, peelStart,
       contact,contactStart,contactRest,contactLambda:new Float64Array(3),
-      start:new Float64Array(this.positions), age:0, pressure:1, dentDepth:0, pulling:0, folding:0 };
+      start:new Float64Array(this.positions), age:0, pressure:1, dentDepth:0, pulling:0, folding:0,
+      peelTarget:{x:0,y:0,z:0},peelPressure:1 };
     this.grabs.set(id,grab);this.strainContacts.push(grab);
     // Keep the existing rebound velocity when caught again; reversing it
     // immediately was a visible snap during rapid play.
@@ -257,7 +273,7 @@ export class SoftBodyPhysics {
     const g=this.grabs.get(id);
     if(!g || !Number.isFinite(amount)) return;
     g.pressure = Math.max(0, Math.min(1.3, amount));
-    this.moveGrab(g.rawTarget,id);
+    this.moveGrab(g.rawTarget,id,g.peelTarget,amount);
   }
   setTwist(amount:number, id=0) {
     const g=this.grabs.get(id);
@@ -270,15 +286,20 @@ export class SoftBodyPhysics {
     g.folding=Math.max(0,Math.min(1,amount));
   }
 
-  moveGrab(offset: Point, id=0) {
+  moveGrab(offset: Point, id=0, peelTarget:Point=offset, peelPressure?:number) {
     const g=this.grabs.get(id);
     if (!g || !Number.isFinite(offset.x) || !Number.isFinite(offset.y) || !Number.isFinite(offset.z)) return;
     const length = Math.hypot(offset.x, offset.y, offset.z);
     // Resistance increases continuously toward the limit instead of hitting
     // a hard stop when a pointer crosses one exact radius.
-    const limit=this.feel.pressDragLimit+(this.feel.dragLimit-this.feel.pressDragLimit)*(1-Math.min(1,g.pressure))+0.4*g.folding;
+    const free=Math.max(0,((this.adhesion?.progress ?? 0)-.82)/.18);
+    const limit=this.feel.pressDragLimit+(this.feel.dragLimit-this.feel.pressDragLimit)*(1-Math.min(1,g.pressure))+0.4*g.folding+.85*free;
     const scale = limit*Math.tanh(length/limit)/Math.max(length,0.0001);
     g.rawTarget.x=offset.x;g.rawTarget.y=offset.y;g.rawTarget.z=offset.z;
+    if([peelTarget.x,peelTarget.y,peelTarget.z].every(Number.isFinite)) {
+      g.peelTarget.x=peelTarget.x;g.peelTarget.y=peelTarget.y;g.peelTarget.z=peelTarget.z;
+      g.peelPressure=Number.isFinite(peelPressure)?peelPressure!:g.pressure;
+    }
     g.target.x=offset.x*scale;g.target.y=offset.y*scale;g.target.z=offset.z*scale;
   }
 
@@ -288,7 +309,7 @@ export class SoftBodyPhysics {
   release(id=0, preserveMovement=true) {
     const grab=this.grabs.get(id);
     if(!grab) return;
-    if(preserveMovement && !this.feel.kneading && !this.feel.foam) this.finishMovement(grab,id);
+    if(preserveMovement && !this.feel.kneading && !this.feel.foam && !this.adhesion?.active) this.finishMovement(grab,id);
     for(let i=0;i<this.strainContacts.length;i++) if(this.strainContacts[i]===grab) {this.strainContacts.splice(i,1);break;}
     this.grabs.delete(id);
     this.dentDepth=0;
@@ -335,15 +356,18 @@ export class SoftBodyPhysics {
   /** Shared legal contact offset, for both held motion and its final sample. */
   private grabOffset(g:Grab,target:Point):Point {
     const frame=pressureFrame(g.localAnchor.y,this.compression,this.feel.foam?.lateralExpansion);
-    const desired=this.toMaterialPoint({x:g.anchor.x+target.x-g.normal.x*g.dentDepth,
-      y:Math.max(FLOOR+0.005,frame.y+target.y-g.normal.y*g.dentDepth),
-      z:g.anchor.z+target.z-g.normal.z*g.dentDepth});
+    const desired=this.toMaterialPoint({x:g.anchor.x+g.peelStart.x+target.x-g.normal.x*g.dentDepth,
+      y:Math.max(FLOOR+0.005,frame.y+g.peelStart.y+target.y-g.normal.y*g.dentDepth),
+      z:g.anchor.z+g.peelStart.z+target.z-g.normal.z*g.dentDepth});
     const offset={x:desired.x-g.localAnchor.x,y:desired.y-g.localAnchor.y,z:desired.z-g.localAnchor.z};
-    if(offset.y>0.66) {
-      const resisted=0.66+0.16*Math.tanh((offset.y-0.66)/0.16);
+    const peelResistance=this.adhesion?.active?Math.max(0,Math.min(1,(Math.hypot(g.peelTarget.x,g.peelTarget.y,g.peelTarget.z)-1)/.65)):0;
+    const liftLimit=.66+(Math.min(.5,.12+.3*Math.max(0,g.restAnchor.y-FLOOR))-.66)*peelResistance;
+    if(offset.y>liftLimit) {
+      const resisted=liftLimit+0.16*Math.tanh((offset.y-liftLimit)/0.16);
       offset.y+=(resisted-offset.y)*this.pullAmount(g,target);
     }
-    const strain=Math.hypot(offset.x,offset.y,offset.z),range=1.15+0.65*(1-Math.min(1,g.pressure));
+    const strain=Math.hypot(offset.x,offset.y,offset.z),elasticRange=1.15+0.65*(1-Math.min(1,g.pressure));
+    const range=elasticRange+(.9-elasticRange)*peelResistance;
     const limit=Math.min(1,range/Math.max(strain,0.0001));
     offset.x*=limit;offset.y*=limit;offset.z*=limit;
     return offset;
@@ -352,6 +376,7 @@ export class SoftBodyPhysics {
   releaseAll() { this.grabs.clear(); this.strainContacts.length=0;this.dentDepth=0; }
 
   reset() {
+    this.adhesion?.reset();
     this.kneading?.reset();
     if(this.plastic) {
       this.plastic.reset();
@@ -397,6 +422,13 @@ export class SoftBodyPhysics {
   }
 
   step(dt = STEP) {
+    if(!Number.isFinite(dt) || dt<=0 || dt>0.05) return;
+    if(this.adhesion) {
+      this.peelContacts.length=0;
+      for(const [id,g] of this.grabs) this.peelContacts.push({id,anchor:g.anchor,offset:g.peelTarget,pressure:g.peelPressure});
+      this.adhesion.step(dt,this.peelContacts,this.reducedMotion);
+      for(const [id,g] of this.grabs) this.moveGrab(g.rawTarget,id,g.peelTarget,g.peelPressure);
+    }
     this.previousCompression = this.compression;
     this.previousTwist = this.twist;
     let target=this.plastic?.compression ?? 0, verticalPressure=0, torqueSum=0, torqueMagnitude=0, pulling=0, pullLoad=0;
@@ -595,6 +627,13 @@ export class SoftBodyPhysics {
       if (!Number.isFinite(p[j]) || Math.abs(p[j]-this.rest[j])>3) { this.reset(); return; }
       v[j]=(p[j]-this.previous[j])/dt;
     }
+    // Peeling a low contact patch can make the volume solver redistribute a
+    // large correction into the crown. Keep that correction from becoming an
+    // ever larger inertial kick on the next tick while the base resists.
+    if(this.adhesion?.active) for(let j=0;j<v.length;j+=3) {
+      const speed=Math.hypot(v[j],v[j+1],v[j+2]);
+      if(speed>6) for(let k=0;k<3;k++)v[j+k]*=6/speed;
+    }
     this.kneading?.step(p,this.previous,this.contactWeights,
       this.compression-this.previousCompression,this.twist-this.previousTwist,dt);
     if(this.plastic?.learn(p,this.contactWeights,this.compression,verticalPressure,dt)) {
@@ -629,6 +668,7 @@ export class SoftBodyPhysics {
       twist:this.twist,twistSpeed:this.twistVelocity,dentDepth:this.dentDepth,
       volumeRatio: total/initial, minVolumeRatio, grabbed: this.grabs.size>0, contactCount:this.grabs.size, particles: COUNT,
       flickCount:this.flickCount,lastFlick:this.lastFlick,meanOffset,meanVelocity,
+      ...(this.adhesion?{adhesion:this.adhesion.diagnostics()}: {}),
       ...(this.kneading?{kneading:this.kneading.diagnostics()}: {}),
       ...(this.plastic?{plastic:this.plastic.diagnostics()}: {}) };
   }

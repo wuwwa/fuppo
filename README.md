@@ -8,6 +8,8 @@ Each soft toy has its own locally hosted CC0 foley bank: short dry contacts, fab
 
 Butter (`?toy=butter`) imitates a slow-rise butter-stick squishy: a matte yellow block with navy SALTED BUTTER print, rounded edges, and shallow portion marks. Its foam compresses with limited sideways expansion; local dents linger and slowly recover after release. Hold to flatten, drag to stretch, then release and watch it rise. It supports the shared touch, keyboard, sound, and reset controls. See [the butter notes and follow-up ideas](docs/BUTTER.md).
 
+Butter, Cushion, Loop, Star, Putty and Dough also [peel off the floor](docs/STICKY_PEEL.md): keep pulling up and away through the sticky resistance until the base releases. Let go to settle it back down. Keyboard users can hold Space + Up.
+
 Butter opens first when visiting the home page and stays first in the collection. Favorite toys appear next. Direct toy links still open the toy they name. Preferences stay on your device and play remains available when storage is blocked.
 
 See [the product strategy](docs/PRODUCT_STRATEGY.md) for the adult, fidget-first direction, monetization research, and iPhone feasibility roadmap. See [daily-use validation](docs/DAILY_USE_REVIEW.md) for release evidence and the remaining physical-device and usability work.

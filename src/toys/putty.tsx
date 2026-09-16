@@ -20,6 +20,7 @@ export const putty:ToyDefinition={
     touchGuide:[
       {gesture:'Hold to knead',description:'Rest a finger on the putty. Longer holds leave a dent that stays.'},
       {gesture:'Pull a fold',description:'Drag from the putty to stretch it. Use two fingers to pinch or pull it apart.'},
+      {gesture:'Peel it free',description:'Keep pulling up and away until the sticky base lets go. Release to settle it back onto the floor.'},
       {gesture:'Turn it around',description:'Drag on the empty space beside the putty to knead another side.'},
     ],
   },

@@ -1,4 +1,5 @@
 import { loadFoley, foleyCharacter, type FoleyBank, type FoleyLoader, type FoleyMaterial } from '../audio/foley';
+import { DEFAULT_AUDIO_VOLUME, normalizeVolume } from '../audio/volume';
 
 export interface AudioMotion {
   contacts: number;
@@ -33,6 +34,7 @@ export class SoftBodyAudio {
   private variation = 0;
   private selection = { press: 0, release: 0, pop: 0 };
   private readonly pitch: number;
+  private volume = DEFAULT_AUDIO_VOLUME;
   enabled = false;
 
   constructor(pitch = 1, private readonly createContext: () => AudioContext = () => new AudioContext(),
@@ -48,7 +50,7 @@ export class SoftBodyAudio {
     if (!this.context) {
       this.context = this.createContext();
       this.master = this.context.createGain();
-      this.master.gain.value = .48;
+      this.master.gain.value = this.volume;
       this.master.connect(this.context.destination);
     }
     const ctx = this.context;
@@ -66,6 +68,14 @@ export class SoftBodyAudio {
         this.enabled = false; this.stop(); throw error;
       }
     }
+  }
+
+  setVolume(volume: number) {
+    this.volume = normalizeVolume(volume);
+    if (!this.context || !this.master) return;
+    const now = this.context.currentTime;
+    this.master.gain.cancelScheduledValues(now);
+    this.master.gain.setTargetAtTime(this.volume, now, .015);
   }
 
   play(kind: 'press' | 'release' | 'pop', strength = .6) {
@@ -181,7 +191,7 @@ export class SoftBodyAudio {
   diagnostics() {
     return { enabled: this.enabled, contextState: this.context?.state ?? 'uninitialized',
       transientVoices: [...this.voices].filter(voice => voice.kind === 'transient').length,
-      gestureActive: !!this.gesture && !this.gesture.ending };
+      gestureActive: !!this.gesture && !this.gesture.ending, volume: this.volume };
   }
 
   dispose() {

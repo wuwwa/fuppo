@@ -331,6 +331,7 @@ export async function mountFreeBody(host: HTMLElement, context: ToyContext, shap
         try { await Promise.all([audio.setEnabled(enabled), ...(shape === 'jelly' ? [chimes.setEnabled(enabled)] : [])]); }
         catch (error) { await audio.setEnabled(false); await chimes.setEnabled(false); throw error; }
       },
+      setVolume: volume => { audio.setVolume(volume); chimes.setVolume(volume); },
       setReducedMotion: value => { physics.reducedMotion = value; wake(); },
       ...(shape === 'jelly' ? { setTransformation: (enabled: boolean) => {
         if (disposed) return;

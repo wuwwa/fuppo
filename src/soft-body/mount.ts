@@ -18,6 +18,7 @@ export async function mountSoftToy(host: HTMLElement, context: ToyContext, profi
     return {
       reset: () => controller.reset(),
       setSound: enabled => controller.setSound?.(enabled),
+      setVolume: volume => controller.setVolume?.(volume),
       setPaused: paused => controller.setPaused?.(paused),
       setReducedMotion: reduced => controller.setReducedMotion?.(reduced),
       dispose: () => { try { controller.dispose(); } finally { canvas.remove(); } },

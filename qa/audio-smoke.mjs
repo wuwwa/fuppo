@@ -54,6 +54,15 @@ const click=async selector=>{
   await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',buttons:1,clickCount:1,...point});
   await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',buttons:0,clickCount:1,...point});
 };
+const setVolume=async value=>{
+  await evaluate(`(()=>{
+    const input=document.querySelector('.volume-slider');
+    if(!input || input.disabled)throw new Error('No enabled volume meter');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(String(value))});
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+  })()`);
+};
 const touch=(type,points)=>send('Input.dispatchTouchEvent',{
   type,touchPoints:points.map(({id,x,y})=>({id,x,y,radiusX:12,radiusY:12,force:0.6})),
 });
@@ -96,9 +105,18 @@ try {
   await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
   await send('Page.navigate',{url:`http://127.0.0.1:5174/?toy=cushion${backend==='webgl'?'&renderer=webgl':''}`});
   await waitFor(data=>data.state?.entrance>=0.95,'Toy readiness',25000);
+  const initialVolume=await evaluate(`document.querySelector('.volume-slider')?.value`);
+  if(initialVolume!=='80')throw new Error(`Unexpected initial volume: ${initialVolume}`);
+  await setVolume(40);
+  await waitFor(data=>data.state?.audio?.volume===.4,'Muted volume update');
+  if(contexts.size!==0)throw new Error('Adjusting volume created an audio context before consent');
+  const savedVolume=await evaluate(`JSON.parse(localStorage.getItem('fiddy-preferences-v1')).volume`);
+  if(savedVolume!==.4)throw new Error(`Volume did not persist: ${savedVolume}`);
   await record('initially muted');
   await click('button[aria-label="Enable cushion sounds"]');
   await waitFor(data=>data.state?.audio?.enabled && data.state.audio.contextState==='running','UI sound enable');
+  await setVolume(100);
+  await waitFor(data=>data.state?.audio?.volume===1,'Live volume update');
   await record('enabled through trusted UI click');
 
   const points=[{id:10,x:159,y:423},{id:20,x:233,y:423}];
@@ -129,6 +147,8 @@ try {
   await click('button[aria-label="Open toy collection"]');await delay(150);
   await click('a[href*="toy=jelly"]');
   await waitFor(data=>data.state?.shape==='jelly' || data.state?.shape==='pebble' && data.state?.entrance>=0.95,'Toy switch readiness',25000);
+  const restoredVolume=await evaluate(`document.querySelector('.volume-slider')?.value`);
+  if(restoredVolume!=='100')throw new Error(`Volume did not follow toy switch: ${restoredVolume}`);
   await waitFor(()=>oldContexts.every(id=>['closed','destroyed'].includes(contexts.get(id))),'Old audio context must close');
   await record('toy switch closes old context');
   if(errors.length)throw new Error(`Browser errors: ${JSON.stringify(errors)}`);

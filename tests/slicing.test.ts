@@ -1,9 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SliceModel, MAX_PIECES, area, chord, center, silhouette, splitPolygon, type Point } from '../src/slicing/model.ts';
+import { SliceAudio } from '../src/slicing/audio.ts';
 
 const square: Point[] = [{ x: -1, z: -1 }, { x: 1, z: -1 }, { x: 1, z: 1 }, { x: -1, z: 1 }];
 const close = (a: number, b: number, tolerance = 1e-7) => assert.ok(Math.abs(a - b) < tolerance, `${a} != ${b}`);
+test('slice volume is bounded before an audio context exists', () => {
+  const audio = new SliceAudio();
+  audio.setVolume(.45); assert.equal(audio.diagnostics.volume, .45);
+  audio.setVolume(8); assert.equal(audio.diagnostics.volume, 1);
+  audio.setVolume(-8); assert.equal(audio.diagnostics.volume, 0);
+  audio.setVolume(Number.NaN); assert.equal(audio.diagnostics.volume, .8);
+  audio.dispose();
+});
 test('edge-to-edge cuts conserve volume and create closed convex footprints', () => {
   for (const kind of ['slab', 'prism'] as const) {
     const polygon = silhouette(kind), original = area(polygon);

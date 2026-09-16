@@ -10,6 +10,7 @@ export interface ToyController {
   reset(): void;
   dispose(): void;
   setSound?(enabled: boolean): void | Promise<void>;
+  setVolume?(volume: number): void;
   setPaused?(paused: boolean): void;
   setReducedMotion?(reduced: boolean): void;
   setTransformation?(enabled: boolean): void;
@@ -19,6 +20,7 @@ export interface ToyController {
 
 export interface ToyPreferences {
   sound: boolean;
+  volume: number;
   reducedMotion: boolean;
   paused: boolean;
 }

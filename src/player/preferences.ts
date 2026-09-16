@@ -1,8 +1,9 @@
 import { defaultToy, toys } from '../toys/registry';
 import type { ToyMode } from '../toys/types';
+import { normalizeVolume } from '../audio/volume';
 
 export const preferenceKey = 'fiddy-preferences-v1';
-export interface PlayerPreferences { version: 1; favoriteIds: string[]; lastToyId: string | null; toyModes?: Record<string, ToyMode> }
+export interface PlayerPreferences { version: 1; favoriteIds: string[]; lastToyId: string | null; toyModes?: Record<string, ToyMode>; volume?: number }
 type StoragePort = Pick<Storage, 'getItem' | 'setItem'>;
 const known = new Set(toys.map(toy => toy.id));
 export function readPreferences(storage: Pick<StoragePort, 'getItem'>): PlayerPreferences {
@@ -23,7 +24,8 @@ export function readPreferences(storage: Pick<StoragePort, 'getItem'>): PlayerPr
     return { version: 1,
       favoriteIds: Array.isArray(value.favoriteIds) ? [...new Set<string>(value.favoriteIds.map(canonicalId).filter((id: unknown): id is string => typeof id === 'string' && known.has(id)))] : [],
       lastToyId: typeof lastToyId === 'string' && known.has(lastToyId) ? lastToyId : null,
-      ...(Object.keys(toyModes).length ? { toyModes } : {}) };
+      ...(Object.keys(toyModes).length ? { toyModes } : {}),
+      ...(typeof value.volume === 'number' && Number.isFinite(value.volume) ? { volume: normalizeVolume(value.volume) } : {}) };
   } catch { return empty; }
 }
 export function writePreferences(storage: Pick<StoragePort, 'setItem'>, value: PlayerPreferences) {

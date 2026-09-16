@@ -36,6 +36,8 @@
   .toy .control-pill{padding:4px}
   .toy .toy-player[data-toy-id] .control-pill button{padding:0 14px}
   .toy .toy-player[data-toy-id] .control-pill .sound-toggle{width:48px;padding:0}
+  .toy .volume-control{height:48px}
+  .toy .volume-slider{height:48px}
   .toy .control-pill svg{width:20px;height:20px}
   .toy .collection-trigger{padding:0 18px;gap:8px}
   .collection-label-full{display:none}
@@ -116,6 +118,9 @@
 /* Two card columns stop being useful below this width. The collection becomes
    a compact, one-handed app list while retaining its own momentum scrolling. */
 @media(max-width:360px){
+  .toy .volume-slider{width:56px}
+  .toy .control-pill button:not(.sound-toggle){width:48px;padding:0}
+  .toy .control-pill button:not(.sound-toggle)>span{display:none}
   .toy .collection-dialog{padding:16px;border-radius:26px}
   .toy .collection-heading{gap:10px;margin-bottom:14px}
   .toy .collection-heading h2{font-size:22px}
@@ -138,6 +143,7 @@
   .toy .wordmark>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
   .toy .toy-player[data-toy-id] .interaction-dock{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right))}
   .toy .control-cluster{gap:8px}
+  .toy .volume-slider{width:48px}
   .toy .control-pill button:not(.sound-toggle){width:48px;padding:0}
   .toy .control-pill button:not(.sound-toggle)>span,.toy .collection-trigger>span{display:none}
   .toy .collection-trigger{width:56px;padding:0}

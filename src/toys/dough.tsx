@@ -20,10 +20,11 @@ export const dough:ToyDefinition={
     touchGuide:[
       {gesture:'Lean into it',description:'Press and hold. The dough gives way slowly under your hand.'},
       {gesture:'Fold it over',description:'Catch an edge and drag it across the middle. The flap rolls over onto the dough. Release to let the layers settle and merge.'},
+      {gesture:'Peel it off',description:'Pull an edge up and away from the middle. Keep tension on it as the sticky base gradually lets go.'},
       {gesture:'Work it together',description:'Knead different parts again and again. The flour gradually blends in, and worked folds keep some of their shape.'},
       {gesture:'Use both hands',description:'Hold one side with a finger while pushing the other. Drag beside the dough to turn it.'},
     ],
-    keyboardHint:<><kbd>←</kbd> / <kbd>→</kbd> to turn <span>·</span> hold <kbd>space</kbd> + arrows to knead</>,
+    keyboardHint:<><kbd>←</kbd> / <kbd>→</kbd> to turn <span>·</span> hold <kbd>space</kbd> + arrows to knead & peel</>,
   },
   load:()=>import('../dough/entry'),
 };

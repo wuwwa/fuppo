@@ -15,6 +15,12 @@ test('unavailable and malformed storage does not block play or saving', () => {
     assert.equal(readPreferences({ getItem }).lastToyId, null);
   assert.doesNotThrow(() => writePreferences({ setItem: () => { throw new Error('quota'); } }, read(null)));
 });
+test('saved volume is retained on the 0–1 scale and malformed values are ignored', () => {
+  assert.equal(read({ version: 1, favoriteIds: [], lastToyId: null, volume: .65 }).volume, .65);
+  assert.equal(read({ version: 1, favoriteIds: [], lastToyId: null, volume: 4 }).volume, 1);
+  assert.equal(read({ version: 1, favoriteIds: [], lastToyId: null, volume: -2 }).volume, 0);
+  assert.equal(read({ version: 1, favoriteIds: [], lastToyId: null, volume: 'loud' }).volume, undefined);
+});
 test('Butter stays first, followed by favorites in registry order', () => {
   assert.deepEqual(orderToys([]), toys);
   assert.deepEqual(orderToys(['putty', 'jelly']).slice(0, 3).map(toy => toy.id), ['butter', 'jelly', 'putty']);
