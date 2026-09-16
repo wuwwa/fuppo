@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ToyDefinition, ToyMode, TransformationState, BonusRoundSnapshot } from '../toys/types';
 import { ToySession } from './ToySession';
 import { CollectionIcon, ResetIcon, SoundIcon } from './Icons';
 import { BonusPreview } from './BonusPreview';
+import { VolumeControl } from './VolumeControl';
 
 export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChange, volume, onVolumeChange, collectionOpen, onOpenCollection }: {
   toy: ToyDefinition;
@@ -72,12 +73,6 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
     if (session.current === current) setAudioBusy(false);
   };
   const reset = () => status === 'error' ? setGeneration(value => value + 1) : session.current?.reset();
-  const volumePercent = Math.round(volume * 100);
-  const changeVolume = (next: number) => {
-    const normalized = Math.max(0, Math.min(1, next));
-    onVolumeChange(normalized);
-    session.current?.setVolume(normalized);
-  };
   const previewTransformation = (enabled: boolean) => {
     setTransformed(enabled); session.current?.setTransformation(enabled);
   };
@@ -111,14 +106,7 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
         <div className="control-pill floating-surface">
           {supportsSound && <>
             <button className="sound-toggle" onClick={toggleSound} disabled={status !== 'ready' || audioBusy} aria-pressed={sound} aria-label={sound ? `Mute ${toy.name.toLowerCase()} sounds` : `Enable ${toy.name.toLowerCase()} sounds`}><SoundIcon enabled={sound} /></button>
-            <label className="volume-control" title={`Volume ${volumePercent}%`}>
-              <span className="sr-only">{toy.name} volume</span>
-              <input className="volume-slider" type="range" min="0" max="100" step="5" value={volumePercent}
-                disabled={status !== 'ready' || audioBusy} aria-label={`${toy.name} volume`} aria-valuetext={`${volumePercent}%`}
-                onChange={event => changeVolume(Number(event.currentTarget.value) / 100)}
-                style={{ '--volume-level': `${volumePercent}%` } as CSSProperties} />
-              <output aria-hidden="true">{volumePercent}%</output>
-            </label>
+            <VolumeControl volume={volume} onChange={onVolumeChange} disabled={status !== 'ready' || audioBusy} paused={paused} sound={sound} />
             <span className="control-divider" />
           </>}
           <button onClick={reset} disabled={status === 'loading'} aria-label={`Reset ${toy.name.toLowerCase()}`}><ResetIcon /><span>Reset</span></button>

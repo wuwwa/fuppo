@@ -98,10 +98,10 @@ export const butterProfile: SoftToyProfile = {
   reaction: { kind: 'solid' },
   feel: {
     ...cushionProfile.feel,
-    adhesion: { onset: .62, distance: 1.1, rate: .82 },
+    adhesion: { onset: .8, distance: 1.7, rate: .58, releaseStretch: .94, releaseHold: .5 },
     foam: { lateralExpansion: 0.10, recoveryTime: 1.6, volumeCompliance: 0.0015, maxCompression: 0.72 },
     stiffness: 5, damping: 26, edgeCompliance: 0.025,
-    dragLimit: 0.7, pressDragLimit: 0.42, pullReleaseTime: 1.4,
+    dragLimit: 1.12, pressDragLimit: 0.42, pullReleaseTime: 1.4,
     pressDepth: 0.38, holdDepth: 0.68, creepTime: 0.6,
     pressSpring: 70, pressDamping: 25,
     returnSpring: 9, returnDamping: 19,

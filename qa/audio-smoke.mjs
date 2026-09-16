@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -23,7 +24,11 @@ const send=(method,params={},sessionId=session)=>new Promise((resolve,reject)=>{
   pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});
   socket.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));
 });
-const evaluate=async expression=>(await send('Runtime.evaluate',{expression,returnByValue:true})).result.value;
+const evaluate=async expression=>{
+  const result=await send('Runtime.evaluate',{expression,returnByValue:true});
+  if(result.exceptionDetails)throw new Error(JSON.stringify(result.exceptionDetails));
+  return result.result.value;
+};
 const diagnostics=()=>evaluate(`(()=>{
   const canvas=document.querySelector('canvas');
   return {state:canvas?.dataset.diagnostics?JSON.parse(canvas.dataset.diagnostics):null,
@@ -53,8 +58,10 @@ const click=async selector=>{
   if(!point)throw new Error(`No enabled UI control: ${selector}`);
   await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',buttons:1,clickCount:1,...point});
   await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',buttons:0,clickCount:1,...point});
+  await delay(60);
 };
 const setVolume=async value=>{
+  if(await evaluate(`document.querySelector('.volume-panel')?.hidden`))await click('.volume-trigger');
   await evaluate(`(()=>{
     const input=document.querySelector('.volume-slider');
     if(!input || input.disabled)throw new Error('No enabled volume meter');
@@ -107,9 +114,49 @@ try {
   await waitFor(data=>data.state?.entrance>=0.95,'Toy readiness',25000);
   const initialVolume=await evaluate(`document.querySelector('.volume-slider')?.value`);
   if(initialVolume!=='80')throw new Error(`Unexpected initial volume: ${initialVolume}`);
+  assert.equal(await evaluate(`document.querySelector('.volume-panel').hidden`),true);
+  await click('.volume-trigger');
+  assert.equal(await evaluate(`document.activeElement.className`),'volume-slider');
+  const range=await evaluate(`(()=>{const e=document.querySelector('.volume-slider'),r=e.getBoundingClientRect();return {x:r.x+r.width/2,top:r.top+13,bottom:r.bottom-13};})()`);
+  // Exercise the actual browser slider, including captured movement outside its width.
+  const startY=range.bottom-(range.bottom-range.top)*.8;
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',buttons:1,clickCount:1,x:range.x,y:startY});
+  const values=[];
+  for(let step=1;step<=12;step++){
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',button:'left',buttons:1,x:range.x+20,y:startY+step*3});
+    values.push(Number(await evaluate(`document.querySelector('.volume-slider').value`)));
+  }
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',buttons:0,clickCount:1,x:range.x+20,y:startY+36});
+  assert.ok(values.at(-1)<60 && values.every((v,i)=>i===0 || v<values[i-1]),'Downward drag must lower volume continuously');
+  assert.ok(values.some(v=>v%5!==0),'Dragging must not snap to five-percent increments');
+  await setVolume(50);
+  await touch('touchStart',[{id:7,x:range.x,y:(range.top+range.bottom)/2}]);
+  await touch('touchMove',[{id:7,x:range.x,y:range.top+10}]);
+  await touch('touchEnd',[]);
+  assert.ok(Number(await evaluate(`document.querySelector('.volume-slider').value`))>85,'Upward touch drag must raise volume');
+  await setVolume(50);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowUp',code:'ArrowUp',windowsVirtualKeyCode:38});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowUp',code:'ArrowUp',windowsVirtualKeyCode:38});
+  assert.equal(Number(await evaluate(`document.querySelector('.volume-slider').value`)),51);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+  assert.equal(await evaluate(`document.querySelector('.volume-panel').hidden`),true);
+  assert.equal(await evaluate(`document.activeElement.className`),'volume-trigger');
+  for(const [width,height,mobile] of [[320,568,true],[280,653,true],[568,320,true],[1366,768,false]]){
+    await send('Emulation.setDeviceMetricsOverride',{width,height,mobile,deviceScaleFactor:1});
+    await delay(100);
+    await click('.volume-trigger');
+    const panel=await evaluate(`(()=>{const r=document.querySelector('.volume-panel').getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom};})()`);
+    assert.ok(panel.right>panel.x&&panel.bottom>panel.y&&panel.x>=0&&panel.y>=0&&panel.right<=width&&panel.bottom<=height,`Volume panel fits ${width}x${height}: ${JSON.stringify(panel)}`);
+    const {data}=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+    await writeFile(join(artifacts,`volume-${width}x${height}.png`),Buffer.from(data,'base64'));
+    await click('.volume-trigger');
+  }
+  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,mobile:true,deviceScaleFactor:1});
   await setVolume(40);
   await waitFor(data=>data.state?.audio?.volume===.4,'Muted volume update');
   if(contexts.size!==0)throw new Error('Adjusting volume created an audio context before consent');
+  await delay(220);
   const savedVolume=await evaluate(`JSON.parse(localStorage.getItem('fiddy-preferences-v1')).volume`);
   if(savedVolume!==.4)throw new Error(`Volume did not persist: ${savedVolume}`);
   await record('initially muted');
@@ -117,6 +164,7 @@ try {
   await waitFor(data=>data.state?.audio?.enabled && data.state.audio.contextState==='running','UI sound enable');
   await setVolume(100);
   await waitFor(data=>data.state?.audio?.volume===1,'Live volume update');
+  await click('.volume-trigger');
   await record('enabled through trusted UI click');
 
   const points=[{id:10,x:159,y:423},{id:20,x:233,y:423}];

@@ -70,7 +70,13 @@ export function App() {
   }, []);
 
   useEffect(() => { setPreferences(value => ({ ...value, lastToyId: toy.id })); }, [toy]);
-  useEffect(() => { writePreferences(preferenceStorage, preferences); }, [preferences]);
+  useEffect(() => {
+    // Coalesce slider motion so synchronous storage does not run on every pointer sample.
+    const save = () => writePreferences(preferenceStorage, preferences);
+    const timer = window.setTimeout(save, 180);
+    window.addEventListener('pagehide', save);
+    return () => { window.clearTimeout(timer); window.removeEventListener('pagehide', save); };
+  }, [preferences]);
 
   useEffect(() => {
     document.title = toy.name;

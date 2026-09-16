@@ -10,7 +10,7 @@ function ButterIcon() {
 
 export const butter: ToyDefinition = {
   id: 'butter', preview: '/previews/butter.webp', name: 'Butter',
-  description: 'Press it flat, stretch the sticky base, and peel it free.',
+  description: 'Press it flat. Stretch it to its limit to peel it free.',
   icon: ButterIcon,
   theme: {
     background: '#f3ecdb', foreground: '#57462d', accent: '#987233',
@@ -18,9 +18,12 @@ export const butter: ToyDefinition = {
   },
   copy: {
     loading: 'Unwrapping butter',
-    instructions: ['Hold to squish', 'Keep pulling to peel it free'],
-    touchInstructions: ['Hold to squish', 'Keep pulling to peel it free'],
+    instructions: ['Hold to squish', 'Stretch to its limit to peel'],
+    touchInstructions: ['Hold to squish', 'Stretch to its limit to peel'],
     ...softBodyControls,
+    touchGuide: softBodyControls.touchGuide.map(step=>step.gesture==='Peel it free'
+      ? {gesture:'Stretch to its limit',description:'Pull up and away. The butter stretches while its base stays stuck. Keep tension at the very end of the stretch to peel the last strip free.'}
+      : step),
   },
   load: () => import('../butter/entry'),
 };

@@ -31,6 +31,8 @@ These are edited foley analogues, not claims that every physical toy was recorde
 
 Release and motion are intentionally less prominent than contact. Pops use shortened contacts from their own material, not a universal splat. Banks load on sound enable, decode once, stay on the local origin, and recover from failed downloads on retry. Versioned `v2-` filenames avoid stale first-pass recordings in the browser. Voice caps and mute/disposal guards remain in place. The Fly image includes the audio directory.
 
+Click the level beside the speaker to open the vertical volume fader. Drag up for louder sound and down for quieter sound; the control uses 0.1% pointer increments, one-percent arrow-key changes, and native Home/End support. Escape returns focus to the level button; clicking outside or opening the collection closes the panel. Volume changes reach the existing audio graph immediately, while local preference writes are coalesced after dragging. The speaker remains the separate sound-consent/mute control. The 80% default from the first volume pass is unchanged.
+
 ## Verification
 
 The audio/asset tests cover distinct bank selection for all eight soft toys, no slime fallback, file hashes, PCM integrity, headroom, caching, retries, mute during loading, cleanup, variations and voice limits. `node qa/slice-smoke.mjs --audio-only` decodes and renders all nine banks in Chrome. All are audible under interaction and silent after mute; rendered peaks range from 0.035 to 0.116. Build: `npm run build:fly`.

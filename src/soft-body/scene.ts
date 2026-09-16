@@ -150,7 +150,7 @@ export async function createSoftToyScene(canvas: HTMLCanvasElement, context: Toy
       opticalDepth.value=finish.thickness/Math.sqrt(1-compression);
       contact.shadow.scale.setScalar((1-compression)**(-0.5*(profile.feel.foam?.lateralExpansion ?? 1)));
       const peel=physics.adhesion;
-      contact.shadow.material.opacity=entrance.shadow*(1-.68*(peel?.progress ?? 0));
+      contact.shadow.material.opacity=entrance.shadow*(peel?.contactOpacity ?? 1);
       contact.shadow.rotation.set(-Math.PI/2,0,rotation.angle);
       jelly.updateMatrixWorld();
     };

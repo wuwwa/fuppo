@@ -11,10 +11,21 @@ export async function runPeelChecks({load,reset,click,send,diagnostics,waitFor,d
       await touch('touchMove',[{...start,x:start.x+i*1.2,y:start.y-i*10}]);await delay(45);
       if(i===10)record(`${toy} peeling`,{screenshot:await screenshot(`${toy}-peeling`)});
     }
-    const held=await waitFor(d=>d.state.adhesion.detached,`${toy} detached`,12000);
+    if(toy==='butter') {
+      await delay(1800);
+      assert.equal((await diagnostics()).state.adhesion.detached,false,'Ordinary long Butter pull stays bonded');
+      record('butter resisting',{screenshot:await screenshot('butter-resisting')});
+      for(let i=25;i<=34;i++) {
+        await touch('touchMove',[{...start,x:start.x+i*1.2,y:start.y-i*10}]);await delay(70);
+      }
+    }
+    const held=await waitFor(d=>d.state.adhesion.detached && d.state.adhesion.lift>.4,`${toy} detached`,12000);
     assert.equal(held.state.adhesion.releases,1);assert.equal(held.state.reaction.pops,0);
     assert.ok(held.state.adhesion.lift>.4);assert.equal(held.state.audio.enabled,false);
     record(`${toy} detached`,{adhesion:held.state.adhesion,screenshot:await screenshot(`${toy}-detached`)});
+    await delay(600);
+    assert.equal((await diagnostics()).state.contactCount,1,'Complete release keeps the grip');
+    assert.equal((await diagnostics()).state.adhesion.releases,1,'Complete release never resets itself');
     await touch('touchCancel',[]);
     await waitFor(d=>d.state.contactCount===0 && d.state.adhesion.progress===0,`${toy} settles`);
     await reset();await waitFor(d=>d.state.adhesion.releases===0,`${toy} reset peel`);
@@ -34,12 +45,12 @@ export async function runPeelChecks({load,reset,click,send,diagnostics,waitFor,d
   await waitFor(d=>d.state.audio.enabled,'Sound consent');
   const mouse=(type,x,y)=>send('Input.dispatchMouseEvent',{type,x,y,button:'left',buttons:type==='mouseReleased'?0:1,clickCount:1});
   await mouse('mousePressed',650,470);await waitFor(d=>d.state.contactCount===1,'Desktop grip');
-  for(let i=1;i<=24;i++){await mouse('mouseMoved',650+i*10,470-i*14);await delay(40);}
+  for(let i=1;i<=24;i++){await mouse('mouseMoved',650+i*20,470-i*15);await delay(70);}
   const detached=await waitFor(d=>d.state.adhesion.detached,'Mouse peel');
   assert.ok(detached.state.audio.transientVoices>0,'Final peel plays the consented release accent');
   record('butter desktop detached',{screenshot:await screenshot('butter-desktop-detached')});
   await viewport(844,390);
   await waitFor(d=>d.state.contactCount===0 && d.state.adhesion.progress===0,'Resize releases peel');
-  await mouse('mouseReleased',890,134);
+  await mouse('mouseReleased',1130,110);
   record('peel touch, keyboard, mouse and resize passed');
 }
