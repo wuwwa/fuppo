@@ -27,7 +27,7 @@ Dough is [parked for future refinement](docs/PARKED_TOYS.md). Its implementation
 Requires Node.js 20.19+ or 22.12+ and npm.
 
 ```sh
-git clone https://github.com/wuwwa/Fiddy.git Fuppo
+git clone https://github.com/wuwwa/fuppo.git Fuppo
 cd Fuppo
 npm ci
 npm run dev
@@ -66,7 +66,7 @@ Fuppo runs on the existing Fly app `fid`, at **https://fid.fly.dev**. Keep `app 
 
 A future Fuppo custom domain can be added to this same app using [Fly's custom-domain setup](https://fly.io/docs/networking/custom-domain/), while `fid.fly.dev` remains available. No additional domain or alias is configured by the rename.
 
-The GitHub repository remains `wuwwa/Fiddy`; the setup commands above clone it into a `Fuppo` folder. The internal `fiddy-preferences-v1` storage key is retained so existing favorites and volume settings survive the rename on the same origin.
+The GitHub repository is `wuwwa/fuppo`; the setup commands above clone it into a `Fuppo` folder. The internal `fiddy-preferences-v1` storage key is retained so existing favorites and volume settings survive the rename on the same origin.
 
 ```sh
 fly deploy --remote-only --ha=false
@@ -76,6 +76,6 @@ fly machine list --app fid
 
 Deploy with `--ha=false` to keep one Machine. It uses one shared CPU and 256 MB RAM in Ashburn, with `auto_stop_machines = 'stop'`, `auto_start_machines = true`, and `min_machines_running = 0`. Fly stops it when idle and starts it for requests; the first request after a stop can take longer. Once loaded, the toys run in the visitor's browser without keeping the server active.
 
-The Docker build uses the lockfile and builds from source. Only compiled HTML, the favicon, assets, and recorded audio enter the runtime image. Nginx runs as an unprivileged user on port 8080, with HTTPS at Fly's edge. `scripts/prepare-fly.ts` generates Nginx security headers from `config/security.ts` and precompresses text assets. The Docker build validates Nginx configuration before deployment. No database or persistent volume is needed.
+The Docker build uses the lockfile and builds from source. Only compiled HTML, the favicon, assets, recorded audio, and collection previews enter the runtime image. Nginx runs as an unprivileged user on port 8080, with HTTPS at Fly's edge. `scripts/prepare-fly.ts` generates Nginx security headers from `config/security.ts` and precompresses text assets. The Docker build validates Nginx configuration before deployment. No database or persistent volume is needed.
 
 To run the browser checks against Fly, set `QA_ORIGIN=https://fid.fly.dev` and `QA_ARTIFACTS=qa/artifacts/fly` before running the security and production smoke scripts above.

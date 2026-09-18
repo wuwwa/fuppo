@@ -16,6 +16,7 @@ COPY --from=build /app/dist/index.html /usr/share/nginx/html/index.html
 COPY --from=build /app/dist/favicon.svg /usr/share/nginx/html/favicon.svg
 COPY --from=build /app/dist/assets /usr/share/nginx/html/assets
 COPY --from=build /app/dist/audio /usr/share/nginx/html/audio
+COPY --from=build /app/dist/previews /usr/share/nginx/html/previews
 USER nginx
 RUN nginx -t
 EXPOSE 8080
