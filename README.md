@@ -1,4 +1,4 @@
-# Fiddy
+# Fuppo
 
 A collection of interactive fidget toys and visual experiments. Squish jelly, stretch putty, and play with silk, light, and particles in your browser.
 
