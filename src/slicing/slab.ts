@@ -1,3 +1,3 @@
 import type { ToyContext } from '../toys/types';
-import { mountSlice } from './scene';
-export async function mount(host: HTMLElement, context: ToyContext) { return mountSlice(host, context, 'slab'); }
+import { mountTouchGel } from './touch-scene';
+export async function mount(host: HTMLElement, context: ToyContext) { return mountTouchGel(host, context); }

@@ -1,5 +1,6 @@
 import { loadFoley, type FoleyBank, type FoleyLoader } from '../audio/foley';
 import { DEFAULT_AUDIO_VOLUME, normalizeVolume } from '../audio/volume';
+import { AudioActivation } from '../audio/activation';
 
 const unit = (value: number) => Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
 type Voice = { source: AudioBufferSourceNode; gain: GainNode };
@@ -7,6 +8,7 @@ type Voice = { source: AudioBufferSourceNode; gain: GainNode };
 /** Dry blade friction and a short fabric-like slice, without a liquid exit. */
 export class SliceAudio {
   private context: AudioContext | null = null;
+  private activation: AudioActivation | null = null;
   private master: GainNode | null = null;
   private pull: GainNode | null = null;
   private lowpass: BiquadFilterNode | null = null;
@@ -39,20 +41,23 @@ export class SliceAudio {
     limiter.threshold.value = -9; limiter.knee.value = 8; limiter.ratio.value = 3; limiter.attack.value = .003; limiter.release.value = .12;
     pull.connect(low); low.connect(panner); panner.connect(high); high.connect(master); master.connect(limiter); limiter.connect(ctx.destination);
     this.nodes = [master, pull, low, high, panner, limiter];
+    this.activation = new AudioActivation(ctx, () => this.reset());
   }
   async setEnabled(enabled: boolean) {
     if (this.disposed) return;
     const revision = ++this.revision; this.enabled = false; this.stop();
-    if (!enabled) return;
+    if (!enabled) { void this.activation?.setEnabled(false); return; }
     if (!this.context) this.create();
     const ctx = this.context!;
-    const resume = ctx.resume();
+    const resume = this.activation!.setEnabled(true);
     const loading = this.loading ??= this.load(ctx, 'slice');
     let bank: FoleyBank;
     try { [, bank] = await Promise.all([resume, loading]); }
     catch (error) {
       if (this.loading === loading) this.loading = null;
-      if (!this.disposed && revision === this.revision) throw error;
+      if (!this.disposed && revision === this.revision) {
+        void this.activation?.setEnabled(false); throw error;
+      }
       return;
     }
     if (this.disposed || revision !== this.revision) return;
@@ -116,8 +121,17 @@ export class SliceAudio {
     this.accentAt = -Infinity; this.level = 0; this.touching = false;
     if (!this.context || this.disposed) return;
     const now = this.context.currentTime;
-    for (const gain of [this.pull, this.master, ...this.voices.map(v => v.gain)]) { gain?.gain.cancelScheduledValues(now); gain?.gain.setTargetAtTime(0, now, .012); }
-    for (const voice of this.voices) voice.source.stop(now + .065);
+    const running = this.context.state === 'running';
+    for (const gain of [this.pull, this.master, ...this.voices.map(v => v.gain)]) {
+      gain?.gain.cancelScheduledValues(now);
+      if (running) gain?.gain.setTargetAtTime(0, now, .012);
+      else if (gain) gain.gain.value = 0;
+    }
+    for (const voice of this.voices) {
+      voice.source.stop(now + (running ? .065 : 0));
+      if (!running) { voice.source.onended = null; voice.source.disconnect(); voice.gain.disconnect(); }
+    }
+    if (!running) this.voices = [];
   }
   setPaused(paused: boolean) { this.paused = paused; this.reset(); }
   reset() { this.stop(); if (!this.paused && this.enabled && this.context) this.master!.gain.setTargetAtTime(this.volume, this.context.currentTime, .025); }
@@ -125,6 +139,7 @@ export class SliceAudio {
   dispose() {
     if (this.disposed) return;
     this.stop(); this.disposed = true; this.enabled = false; ++this.revision;
+    this.activation?.dispose(); this.activation = null;
     const ctx = this.context, nodes = this.nodes, voices = this.voices;
     this.bed?.stop((ctx?.currentTime ?? 0) + .065);
     this.bed = null; this.nodes = []; this.voices = []; this.context = null; this.bank = null; this.loading = null;

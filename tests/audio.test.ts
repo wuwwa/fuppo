@@ -93,7 +93,7 @@ class FakeBuffer {
   copyToChannel(data: Float32Array, channel: number) { this.data[channel].set(data); }
 }
 
-class FakeContext {
+class FakeContext extends EventTarget {
   currentTime = 0;
   readonly sampleRate = 24_000;
   state: AudioContextState = 'suspended';
@@ -441,6 +441,23 @@ test('muting while context resume is pending cannot enable sound afterward', asy
   assert.equal(audio.enabled, false);
   audio.update(moving); audio.play('press');
   assert.equal(context.sources.length, 0);
+  audio.dispose();
+});
+
+test('browser suspension discards frozen voices and permits a clean resumed interaction', async () => {
+  const { audio, context } = audioFixture();
+  await audio.setEnabled(true);
+  audio.play('press'); audio.update(moving);
+  assert.equal(context.activeSources.length, 2);
+  context.state = 'suspended'; context.dispatchEvent(new Event('statechange'));
+  assert.equal(audio.diagnostics().transientVoices, 0);
+  assert.equal(audio.diagnostics().gestureActive, false);
+  assert.equal(context.connectedNodes.length, 1, 'Suspended voices cannot wait for a frozen clock to finish');
+  assert.equal(audio.enabled, true, 'Browser interruption preserves consent');
+  await audio.setEnabled(true);
+  audio.play('press'); audio.update(moving);
+  assert.equal(audio.diagnostics().transientVoices, 1);
+  assert.equal(audio.diagnostics().gestureActive, true);
   audio.dispose();
 });
 

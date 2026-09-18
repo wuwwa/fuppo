@@ -9,7 +9,9 @@ const interruptionsOnly=process.argv.includes('--interruptions-only');
 const puttyOnly=process.argv.includes('--putty');
 const doughOnly=process.argv.includes('--dough');
 const peelOnly=process.argv.includes('--peel');
-const reportName=`${peelOnly?'peel':doughOnly?'dough':puttyOnly?'putty':'turn'}-${backend}${interruptionsOnly?'-interruptions':''}-results.json`;
+const butterOnly=process.argv.includes('--butter');
+const cubeOnly=process.argv.includes('--gel-cube');
+const reportName=`${cubeOnly?'gel-cube':butterOnly?'butter':peelOnly?'peel':doughOnly?'dough':puttyOnly?'putty':'turn'}-${backend}${interruptionsOnly?'-interruptions':''}-results.json`;
 const origin=process.env.QA_ORIGIN ?? 'http://127.0.0.1:5174';
 const artifacts=resolve('qa/artifacts');await mkdir(artifacts,{recursive:true});
 const profile=await mkdtemp(join(tmpdir(),'codex-jelly-turn-'));
@@ -113,6 +115,14 @@ try {
       if(message.error)request.reject(new Error(JSON.stringify(message.error)));else request.resolve(message.result);
     } else if(message.method==='Runtime.exceptionThrown' || message.method==='Log.entryAdded' && message.params.entry.level==='error')errors.push(message);
   });
+  if(cubeOnly) {
+    const {runGelCubeChecks}=await import('./gel-cube-checks.mjs');
+    await runGelCubeChecks({load,reset,click,send,evaluate,diagnostics,waitFor,delay,touch,viewport,screenshot,record});
+  }
+  if(butterOnly) {
+    const {runButterChecks}=await import('./butter-checks.mjs');
+    await runButterChecks({load,reset,click,send,evaluate,diagnostics,waitFor,delay,touch,viewport,screenshot,record});
+  }
   if(peelOnly) {
     const {runPeelChecks}=await import('./peel-checks.mjs');
     await runPeelChecks({load,reset,click,send,evaluate,diagnostics,waitFor,delay,touch,viewport,screenshot,record});
@@ -125,7 +135,7 @@ try {
     const {runDoughChecks}=await import('./dough-checks.mjs');
     await runDoughChecks({load,reset,click,send,evaluate,diagnostics,waitFor,delay,touch,viewport,screenshot,record});
   }
-  if(interruptionsOnly && !puttyOnly && !doughOnly) {
+  if(interruptionsOnly && !puttyOnly && !doughOnly && !butterOnly && !cubeOnly) {
     const neutral=await load('cushion');
     for(const mode of ['cancel','blur','reduced']) {
       await reset();
@@ -142,7 +152,7 @@ try {
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
     await reset();
   }
-  for(const toy of interruptionsOnly || puttyOnly || doughOnly || peelOnly?[]:['cushion','jelly','loop']) {
+  for(const toy of interruptionsOnly || puttyOnly || doughOnly || peelOnly || butterOnly || cubeOnly?[]:['cushion','jelly','loop']) {
     const neutral=await load(toy);await reset();
     await screenshot(`${toy}-rest`);
     for(const gesture of ['pinch','translation']) {

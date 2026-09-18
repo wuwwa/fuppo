@@ -64,7 +64,9 @@ export class SliceRenderer {
     if (mint) {
       panel(-4, 7, 3, 4, 5, 3.5); panel(4, 4, -3, 3, 4, 2.6); panel(0, 6, -5, 5, 2, 2.2);
     } else {
-      panel(-5, 7, -3.5, 2.3, 4.2, 5); panel(-4, 4, 5, 2.2, 5, 6); panel(5, 2.5, 4, 1.6, 4, 4); panel(1, 7, 0, 4, 1, 2); panel(4, -4, 6, 5, 5, 3);
+      // Broad, quieter reflections describe a wet surface without bleaching
+      // each newly exposed face or producing bright glass-like stripes.
+      panel(-5, 7, -3.5, 3.8, 4.5, 2.6); panel(-4, 4, 5, 3.5, 5, 2.4); panel(4, 4, -3, 3, 4, 1.7);
     }
     try { this.environment = generator.fromScene(studio, .02); this.scene.environment = this.environment.texture; this.scene.environmentIntensity = .9; }
     finally { studio.traverse(object => { if (object instanceof THREE.Mesh) { object.geometry.dispose(); (object.material as THREE.Material).dispose(); } }); texture.dispose(); generator.dispose(); }
@@ -77,8 +79,8 @@ export class SliceRenderer {
     this.camera.position.set(4.5, 5.6, 6.5).normalize().multiplyScalar(Math.max(10.7, 9.0 / aspect));
     this.camera.position.y += .45; this.camera.lookAt(0, .45, 0); this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld();
   }
-  rebuild(model: SliceModel) { this.gel.rebuild(model.pieces); this.inclusions.rebuild(model); this.shadows.count = model.pieces.length; }
-  update(model: SliceModel, press: KnifePress, aim: CutLine | null, reduced: boolean) {
+  rebuild(model: SliceModel, resolution?: number) { this.gel.rebuild(model.pieces, resolution); this.inclusions.rebuild(model); this.shadows.count = model.pieces.length; }
+  update(model: SliceModel, press: KnifePress | null, aim: CutLine | null, reduced: boolean, heightScale?: (x: number, z: number) => number) {
     this.gel.update(model.pieces, reduced);
     model.pieces.forEach((piece, index) => {
       const origin = this.gel.origins[index], bounds = this.gel.bounds[index];
@@ -87,15 +89,16 @@ export class SliceRenderer {
       this.shadowMatrix.updateMatrix(); this.shadows.setMatrixAt(index, this.shadowMatrix.matrix);
     });
     this.shadows.instanceMatrix.needsUpdate = true;
-    const line = press.line ?? aim;
-    this.wire.update(line, press, this.height, this.camera.position.length());
+    const line = press?.line ?? aim;
+    if (press) this.wire.update(line, press, this.height, this.camera.position.length());
+    else this.wire.mesh.visible = false;
     this.gel.knife.w = 0;
-    if (line) {
+    if (line && press) {
       const { angle, center } = line, nx = -Math.sin(angle), nz = Math.cos(angle);
       const depth = press.depth;
       this.gel.knife.set(nx, nz, nx * center.x + nz * center.z, press.phase === 'cutting' ? Math.sin(depth * Math.PI) * .075 : 0);
     }
-    this.inclusions.update();
+    this.inclusions.update(heightScale);
   }
   render(frameMs = 0) {
     const before = performance.now(); this.renderer.info.reset(); this.gel.renderBack(this.renderer, this.camera); this.renderer.render(this.scene, this.camera);

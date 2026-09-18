@@ -10,7 +10,7 @@ function ButterIcon() {
 
 export const butter: ToyDefinition = {
   id: 'butter', preview: '/previews/butter.webp', name: 'Butter',
-  description: 'Press it flat. Stretch it to its limit to peel it free.',
+  description: 'Hold to sink in. Pull slowly to stretch the dense foam.',
   icon: ButterIcon,
   theme: {
     background: '#f3ecdb', foreground: '#57462d', accent: '#987233',
@@ -21,9 +21,13 @@ export const butter: ToyDefinition = {
     instructions: ['Hold to squish', 'Stretch to its limit to peel'],
     touchInstructions: ['Hold to squish', 'Stretch to its limit to peel'],
     ...softBodyControls,
-    touchGuide: softBodyControls.touchGuide.map(step=>step.gesture==='Peel it free'
-      ? {gesture:'Stretch to its limit',description:'Pull up and away. The butter stretches while its base stays stuck. Keep tension at the very end of the stretch to peel the last strip free.'}
-      : step),
+    touchGuide: [
+      {gesture:'Hold to sink in',description:'Touch for a shallow squish. Keep holding to sink deeper, then lift your finger and watch the foam rise.'},
+      {gesture:'Feel it yield',description:'A quick pull stretches the foam partway. Pull slowly or hold the stretch to let it ease farther.'},
+      {gesture:'Use two fingers',description:'Hold two spots and draw them apart. Let one finger go while the other keeps its grip.'},
+      {gesture:'Stretch to its limit',description:'Pull up and away. The butter stretches while its base stays stuck. Keep tension at the very end of the stretch to peel the last strip free.'},
+      ...softBodyControls.touchGuide.filter(step=>step.gesture==='Turn it around'),
+    ],
   },
   load: () => import('../butter/entry'),
 };

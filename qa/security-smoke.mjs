@@ -92,9 +92,9 @@ try {
 
   await viewport(1100,800);
   await send('Page.navigate',{url:origin+'/?toy=unknown'});
-  await waitFor(s=>s.toy==='jelly'&&s.ready,'Untrusted route fallback');
+  await waitFor(s=>s.toy==='butter'&&s.ready,'Untrusted route fallback');
   await evaluate("history.pushState({},'', '?toy='+encodeURIComponent('<img src=x onerror=window.__attack=true>'));dispatchEvent(new PopStateEvent('popstate'))");
-  assert.equal(new URL((await state()).url).searchParams.get('toy'),'jelly');
+  assert.equal(new URL((await state()).url).searchParams.get('toy'),'butter');
   assert.equal(await evaluate('window.__attack===true'),false);
   await evaluate("localStorage.setItem('astra-shape-studio-v1',JSON.stringify({preset:'<img src=x onerror=window.__attack=true>',speed:999,strokes:[[['<script>',2],[0,0],[1,1]],null,42],connectEnds:'true'}))");
   await send('Page.navigate',{url:origin+'/?toy=astra-cursor'});await waitFor(s=>s.toy==='astra-cursor'&&s.ready,'Hostile saved state handled');

@@ -113,10 +113,10 @@ try {
   const requestedToy=process.argv.find(arg=>arg.startsWith('--toy='))?.slice(6);
   const toyIds=requestedToy?[requestedToy==='free-jelly'?'jelly':requestedToy]:process.argv.includes('--webgl')?['jelly','jelly-slice','astra-cursor']:await evaluate("[...document.querySelectorAll('.collection-item')].map(e=>new URL(e.href).searchParams.get('toy'))");
   const select=async requested=>{
-    const toy=requested==='free-jelly'?'jelly':requested,mode=requested==='free-jelly'?'free':'resting';
+    const toy=requested==='free-jelly'?'jelly':requested,mode=['jelly','dumpling'].includes(toy)?'free':'resting';
     await click('.collection-trigger');await waitFor(s=>s.dialog.open,'Collection open');await click('.collection-item[href*="toy='+toy+'"]');
     await waitFor(s=>s.toy===toy&&s.ready&&!s.dialog.open,toy+' ready');
-    if((await state()).mode!==mode){await click('.mode-switch button:'+(mode==='free'?'last-of-type':'first-of-type'));await waitFor(s=>s.ready&&s.mode===mode,toy+' '+mode);}
+    assert.equal((await state()).mode,mode,toy+' primary behavior');
     await delay(150);
   };
   if(process.argv.includes('--fever')){
@@ -147,10 +147,13 @@ try {
     await click('.close-collection');await waitFor(s=>!s.dialog.open,'Resume');await click('button[aria-label^="Reset "]');
     assert.equal(await evaluate("!!document.querySelector('.error-panel')"),false);
     if(toy==='jelly-slice'){
+      assert.equal(await evaluate("!!document.querySelector('.slice-angle,.slice-count,.slice-tension,.slice-limit,.slice-stroke')"),false,'Direct touch has no cutting controls');
       await send('Input.dispatchMouseEvent',{type:'mousePressed',x:600,y:445,button:'left',buttons:1,clickCount:1});
-      const cutStart=Date.now();while(Date.now()-cutStart<8000 && !await evaluate("document.querySelector('.slice-status').textContent.includes('pieces')"))await delay(50);
+      await delay(800);
       await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:600,y:445,button:'left',buttons:0,clickCount:1});
-      assert.match(await evaluate("document.querySelector('.slice-status').textContent"),/pieces/);
+      await delay(6500);
+      const healed=await evaluate('window.__auditState()');await delay(250);
+      assert.equal((await evaluate('window.__auditState()')).draws,healed.draws,'Healed jelly stops drawing');
       await click('button[aria-label^="Reset "]');
     }
     if(toy==='jelly'){
@@ -196,8 +199,8 @@ try {
   await viewport(844,390,true); await delay(1200);
   record('free jelly landscape',{screenshot:await screenshot('free-jelly-'+backend+'-landscape')});
   await viewport(1100,800); await click('button[aria-label^="Reset "]'); await delay(1200);
-  // Reach the canvas using keyboard navigation from Reset, past the sound control.
-  for(let i=0;i<2;i++){
+  // Reach the canvas from Reset through the current sound and volume controls.
+  for(let i=0;i<8&&(await state()).focus.tag!=='CANVAS';i++){
     await send('Input.dispatchKeyEvent',{type:'keyDown',code:'Tab',key:'Tab',windowsVirtualKeyCode:9,modifiers:8});
     await send('Input.dispatchKeyEvent',{type:'keyUp',code:'Tab',key:'Tab',windowsVirtualKeyCode:9,modifiers:8});
   }

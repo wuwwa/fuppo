@@ -104,7 +104,7 @@ test('volume changes are normalized and applied without enabling sound', async (
   player.dispose();
 });
 
-test('asynchronous sound changes finish in order and audio failure is nonfatal', async () => {
+test('mute takes effect while enabling is pending and ignores its late failure', async () => {
   const firstAudio = deferred<void>();
   const calls: boolean[] = [];
   let resets = 0;
@@ -115,10 +115,39 @@ test('asynchronous sound changes finish in order and audio failure is nonfatal',
   await player.start();
   const first = player.setSound(true); await Promise.resolve();
   const second = player.setSound(false);
+  assert.deepEqual(calls, [true, false], 'Mute must not wait for a blocked resume or download');
+  await second;
   firstAudio.reject(new Error('audio unavailable'));
   await Promise.all([first, second]);
   player.reset();
-  assert.deepEqual(calls, [true, false]); assert.equal(soundErrors.length, 1);
+  assert.deepEqual(calls, [true, false]); assert.equal(soundErrors.length, 0);
+  assert.deepEqual(errors, []); assert.equal(resets, 1); player.dispose();
+});
+
+test('a new enable keeps user activation even while restored audio is blocked', async () => {
+  const restoration = deferred<void>();
+  const calls: boolean[] = [];
+  const { player, soundErrors } = session(async () => ({ mount: async () => ({
+    reset() {}, dispose() {},
+    setSound(value) { calls.push(value); return calls.length === 1 ? restoration.promise : Promise.resolve(); },
+  }) }), { ...defaults, sound: true });
+  await player.start();
+  const mute = player.setSound(false), enable = player.setSound(true);
+  assert.deepEqual(calls, [true, false, true], 'Every change must reach the controller synchronously');
+  await Promise.all([mute, enable]);
+  restoration.reject(new Error('old resume failed')); await Promise.resolve();
+  assert.deepEqual(soundErrors, []);
+  player.dispose();
+});
+
+test('a current audio failure is recoverable without failing the toy', async () => {
+  let attempts = 0, resets = 0;
+  const { player, errors, soundErrors } = session(async () => ({ mount: async () => ({
+    reset() { resets++; }, dispose() {},
+    async setSound() { if (++attempts === 1) throw new Error('audio unavailable'); },
+  }) }));
+  await player.start(); await player.setSound(true); await player.setSound(true); player.reset();
+  assert.equal(attempts, 2); assert.equal(soundErrors.length, 1);
   assert.deepEqual(errors, []); assert.equal(resets, 1); player.dispose();
 });
 

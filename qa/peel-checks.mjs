@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 export async function runPeelChecks({load,reset,click,send,diagnostics,waitFor,delay,touch,viewport,screenshot,record}) {
-  for(const toy of ['butter','cushion','loop','star','putty','dough']) {
+  for(const toy of ['butter','cushion','loop','star','putty']) {
     await load(toy);await reset();
     const start={id:1,x:toy==='loop'?246:220,y:toy==='butter'?440:420};
     await touch('touchStart',[start]);

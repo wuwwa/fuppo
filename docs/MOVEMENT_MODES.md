@@ -1,5 +1,7 @@
 # Primary toy behaviors
 
+Current collection note: [Dough is parked](PARKED_TOYS.md) and old Dough links open Butter. Its behavior below describes the retained implementation.
+
 September 13, 2026: choosing a toy now chooses its behavior. Jelly and Dumpling lift and toss; Loop and Star stretch; Cushion compresses and recovers; Putty kneads and holds deformation; Dough folds and merges. The mode selector is removed. Gesture instructions remain available to screen readers.
 
 Toy metadata determines behavior consistently across collection selection, entry, reloads and history. Legacy mode query parameters are removed without dropping other URL options or fragments. Saved mode choices no longer override behavior; favorites and the last toy remain intact. Legacy Free Jelly bookmarks resolve to Jelly.

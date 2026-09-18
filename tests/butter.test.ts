@@ -3,12 +3,101 @@ import assert from 'node:assert/strict';
 import { Vector3 } from 'three/webgpu';
 import { createSoftGeometry } from '../src/soft-body/geometry.ts';
 import { butterProfile } from '../src/soft-body/profiles.ts';
-import { SoftBodyPhysics, FLOOR, STEP } from '../src/soft-body/physics.ts';
+import { SoftBodyPhysics, FLOOR, STEP, type Point } from '../src/soft-body/physics.ts';
 import { pressureFrame, undoDeformation } from '../src/soft-body/pressure.ts';
 
 const advance = (body: SoftBodyPhysics, seconds: number) => {
   for (let i = 0; i < Math.round(seconds / STEP); i++) body.step();
 };
+
+const skinPoint = (body: SoftBodyPhysics, point: Point) => {
+  const rest = new Float32Array([point.x, point.y, point.z]), output = new Float32Array(3);
+  body.deform(rest, output, [body.bind(point.x, point.y, point.z)]);
+  return { x: output[0], y: output[1], z: output[2] };
+};
+
+test('a Butter touch responds immediately and a deliberate hold sinks much deeper', () => {
+  const body = new SoftBodyPhysics(butterProfile.feel), top = { x: 0, y: 0.93, z: 0 };
+  body.beginGrab(top);
+  advance(body, 0.05);
+  const initialDent = top.y - skinPoint(body, top).y;
+  assert.ok(initialDent > 0.005, 'The first touch must visibly register');
+  advance(body, 0.05);
+  const shortDent = top.y - skinPoint(body, top).y;
+  advance(body, 1.4);
+  const heldDent = top.y - skinPoint(body, top).y;
+  assert.ok(heldDent > shortDent * 3, 'A long hold should have an unmistakably deeper response');
+  assert.ok(heldDent < top.y - FLOOR, 'Compression stays above the floor');
+});
+
+test('fast Butter pulls load the foam, slow pulls yield, and held stretches reach the same shape', () => {
+  const point = { x: 0, y: 0.65, z: 0.46 };
+  const pull = (seconds: number) => {
+    const body = new SoftBodyPhysics(butterProfile.feel);
+    body.beginGrab(point, { x: 0, y: 0, z: 1 }); body.setPressure(0);
+    const steps = Math.round(seconds / STEP);
+    for (let i = 1; i <= steps; i++) {
+      body.moveGrab({ x: 0.75 * i / steps, y: 0, z: 0 }); body.step();
+    }
+    return body;
+  };
+  const fast = pull(0.0833333333), slow = pull(1);
+  const quickTravel = skinPoint(fast, point).x, slowTravel = skinPoint(slow, point).x;
+  assert.ok(quickTravel > 0.15, 'A quick pull still has immediate elastic travel');
+  assert.ok(slowTravel > quickTravel * 1.6, 'Speed changes actual visible skin travel');
+  advance(fast, 0.4);
+  assert.ok(skinPoint(fast, point).x > quickTravel + 0.2, 'Steady tension keeps yielding without more pointer events');
+  advance(fast, 2); advance(slow, 2.4);
+  assert.ok(Math.abs(skinPoint(fast, point).x - skinPoint(slow, point).x) < 0.015,
+    'Speed affects the path, without permanently losing stretch range');
+  const held = skinPoint(fast, point), before = new Float64Array(fast.positions);
+  fast.release();
+  assert.deepEqual(fast.positions, before, 'Release never teleports the deformed skin');
+  advance(fast, 0.5);
+  assert.ok(skinPoint(fast, point).x > held.x * 0.65, 'The stretched foam retains its slow recovery');
+  fast.reset();
+  assert.deepEqual(fast.positions, fast.rest);
+  assert.ok(fast.isAtRest(), 'Reset clears the yielding contact history');
+});
+
+test('time spent stretching does not precharge the next Butter press', () => {
+  const fresh = new SoftBodyPhysics(butterProfile.feel), explored = new SoftBodyPhysics(butterProfile.feel);
+  for (const body of [fresh, explored]) body.beginGrab({ x: 0, y: 0.93, z: 0 });
+  explored.setPressure(0); advance(explored, 3); explored.setPressure(1);
+  advance(fresh, 0.2); advance(explored, 0.2);
+  assert.ok(Math.abs(explored.compressionAmount - fresh.compressionAmount) < 0.005,
+    'Only time applying pressure should deepen a press');
+});
+
+test('two Butter contacts distinguish separation from translation and survive partial release', () => {
+  const left = { x: -0.6, y: 0.65, z: 0.38 }, right = { x: 0.6, y: 0.65, z: 0.38 };
+  const pair = (separate: boolean) => {
+    const body = new SoftBodyPhysics(butterProfile.feel);
+    for (const [id, point] of [left, right].entries()) {
+      body.beginGrab(point, { x: 0, y: 0, z: 1 }, id); body.setPressure(0, id);
+    }
+    for (let i = 1; i <= 60; i++) {
+      body.moveGrab({ x: (separate ? -1 : 1) * 0.45 * i / 60, y: 0, z: 0 }, 0);
+      body.moveGrab({ x: 0.45 * i / 60, y: 0, z: 0 }, 1); body.step();
+    }
+    advance(body, 0.5);
+    return body;
+  };
+  const stretch = pair(true), translated = pair(false);
+  const span = (body: SoftBodyPhysics) => skinPoint(body, right).x - skinPoint(body, left).x;
+  assert.ok(span(stretch) > span(translated) + 0.5, 'Two fingers stretch the surface between their own anchors');
+  const before = new Float64Array(stretch.positions), held = skinPoint(stretch, right).x;
+  stretch.release(0);
+  assert.deepEqual(stretch.positions, before);
+  advance(stretch, 0.1);
+  assert.equal(stretch.diagnostics().contactCount, 1);
+  assert.ok(Math.abs(skinPoint(stretch, right).x - held) < 0.08, 'The surviving grip keeps its place');
+  stretch.moveGrab({ x: 0.65, y: 0, z: 0 }, 1); advance(stretch, 0.7);
+  assert.ok(skinPoint(stretch, right).x > held + 0.08, 'The surviving finger can continue stretching');
+  assert.ok(stretch.diagnostics().minVolumeRatio > 0.01);
+  stretch.releaseAll(); advance(stretch, 16);
+  assert.ok(stretch.isAtRest(), 'Cancelled contacts leave no persistent yielding state');
+});
 
 test('butter has a closed rounded stick surface that fits the deformation cage', () => {
   const geometry = createSoftGeometry('butter');

@@ -1,5 +1,7 @@
 # Sticky floor peel
 
+Current collection note: [Dough is parked](PARKED_TOYS.md). The Dough implementation and historical validation below are retained for future work; the active peel browser suite covers the five public toys.
+
 Butter, Cushion, Loop, Star, Putty and Dough resist a long upward or outward pull, lift along a moving contact line, then release from the floor. Small stretches and presses keep their existing behavior. Pulling inward across Dough still folds it. Jelly and Dumpling retain their separate lift-and-toss simulation.
 
 Hold the shape and pull up and away. Several small catches slow the peel. Butter has a longer stretch range and stronger bond: an ordinary long stretch stays attached indefinitely. Its final strip only releases after the visible foam reaches at least 94% of its stretch limit and remains loaded for half a second, with a longer pointer pull as well. A shorter pull holds a partial peel; letting go settles the shape back onto the stage so it can stick again. Mouse, touch and Space + Up use the same mechanism. The keyboard's travel range includes the full peel distance.

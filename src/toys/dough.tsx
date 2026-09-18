@@ -8,6 +8,7 @@ function DoughIcon() {
   </svg>;
 }
 
+/** Parked prototype, intentionally absent from the registry. See docs/PARKED_TOYS.md. */
 export const dough:ToyDefinition={
   id:'dough', preview: '/previews/dough.webp',name:'Dough',icon:DoughIcon,
   description:'Lean in. Push a heavy fold through, then work it back. Flour blends with every knead.',

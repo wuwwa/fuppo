@@ -25,7 +25,6 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
   const [settled, setSettled] = useState<{ definition: ToyDefinition | null; generation: number }>({ definition: null, generation: -1 });
   const [interacting, setInteracting] = useState(false);
   const [supportsSound, setSupportsSound] = useState(false);
-  const [audioBusy, setAudioBusy] = useState(false);
   const [audioError, setAudioError] = useState('');
   const [error, setError] = useState('');
   const [generation, setGeneration] = useState(0);
@@ -44,7 +43,7 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
   const status = settled.definition === definition && settled.generation === generation ? sessionStatus : 'loading';
 
   useEffect(() => {
-    setStatus('loading'); setError(''); setInteracting(false); setSupportsSound(false); setAudioError(''); setAudioBusy(false);
+    setStatus('loading'); setError(''); setInteracting(false); setSupportsSound(false); setAudioError('');
     setTransformed(false); setTransformationState('ordinary');
     setBonusRound({phase:'idle'});
     const current = new ToySession(definition, host.current!, {
@@ -64,13 +63,12 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
   useEffect(() => { session.current?.setReducedMotion(reducedMotion); }, [reducedMotion]);
   useEffect(() => { session.current?.setVolume(volume); }, [volume]);
 
-  const toggleSound = async () => {
+  const toggleSound = () => {
     const current = session.current;
-    if (!current || audioBusy) return;
-    setAudioBusy(true); setAudioError('');
+    if (!current) return;
+    setAudioError('');
     onSoundChange(!sound);
-    await current.setSound(!sound);
-    if (session.current === current) setAudioBusy(false);
+    void current.setSound(!sound);
   };
   const reset = () => status === 'error' ? setGeneration(value => value + 1) : session.current?.reset();
   const previewTransformation = (enabled: boolean) => {
@@ -105,8 +103,8 @@ export function ToyPlayer({ toy, mode, paused, reducedMotion, sound, onSoundChan
       <div className="control-cluster">
         <div className="control-pill floating-surface">
           {supportsSound && <>
-            <button className="sound-toggle" onClick={toggleSound} disabled={status !== 'ready' || audioBusy} aria-pressed={sound} aria-label={sound ? `Mute ${toy.name.toLowerCase()} sounds` : `Enable ${toy.name.toLowerCase()} sounds`}><SoundIcon enabled={sound} /></button>
-            <VolumeControl volume={volume} onChange={onVolumeChange} disabled={status !== 'ready' || audioBusy} paused={paused} sound={sound} />
+            <button className="sound-toggle" onClick={toggleSound} disabled={status !== 'ready'} aria-pressed={sound} aria-label={sound ? `Mute ${toy.name.toLowerCase()} sounds` : `Enable ${toy.name.toLowerCase()} sounds`}><SoundIcon enabled={sound} /></button>
+            <VolumeControl volume={volume} onChange={onVolumeChange} disabled={status !== 'ready'} paused={paused} sound={sound} />
             <span className="control-divider" />
           </>}
           <button onClick={reset} disabled={status === 'loading'} aria-label={`Reset ${toy.name.toLowerCase()}`}><ResetIcon /><span>Reset</span></button>

@@ -1,3 +1,4 @@
+# Fuppo keeps this hosting identifier to preserve https://fid.fly.dev.
 app = 'fid'
 primary_region = 'iad'
 kill_signal = 'SIGQUIT'

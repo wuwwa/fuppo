@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const origin = process.env.QA_ORIGIN ?? 'http://127.0.0.1:5174';
-const profile = await mkdtemp(join(tmpdir(), 'codex-fiddy-responsive-'));
+const profile = await mkdtemp(join(tmpdir(), 'codex-fuppo-responsive-'));
 const chrome = spawn(process.env.CHROME_PATH ?? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', [
   '--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', '--mute-audio',
@@ -83,7 +83,7 @@ const snapshot = () => evaluate(`(() => {
 
 const intersects = (a, b) => a && b && a.x < b.right && a.right > b.x && a.y < b.bottom && a.bottom > b.y;
 const routes = [
-  'butter', 'jelly', 'cushion', 'putty', 'dough', 'loop', 'star', 'dumpling',
+  'butter', 'gel-cube', 'jelly', 'cushion', 'putty', 'loop', 'star', 'dumpling',
   'ascii-tide', 'liquid-light', 'astra-swirl', 'astra-cursor', 'magnetic-dust',
   'silk', 'jelly-slice', 'jelly-prism',
 ];

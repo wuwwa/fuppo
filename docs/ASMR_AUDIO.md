@@ -1,10 +1,11 @@
 # Material-specific interaction audio
 
-The second sound pass replaces the shared wet character with **45 short clips across nine banks** (1,019,108 bytes). Every soft toy has its own press, release and movement files, plus its own timing, filtering and balance. Jelly cutters use a separate blade bank. No Archos slime recordings remain in playback or the shipped asset folder.
+The second sound pass replaces the shared wet character with **45 short clips across nine banks** (1,019,108 bytes). Material banks have press, release and movement files, with their own timing, filtering and balance. Gel Cube and the direct-touch Rose Jelly reuse the documented gel bank; no additional recordings are shipped for them. Mint Jelly uses a separate blade bank. No Archos slime recordings remain in playback or the shipped asset folder.
 
 | Toy | Sound direction | Source material |
 | --- | --- | --- |
 | Jelly | Short, muted, rounded taps; faint movement | Kenney soft impacts and cloth-belt friction |
+| Gel Cube | Lower-pitched contacts and restrained motion | Same documented gel recordings as Jelly, at pitch 0.72 |
 | Butter | Soft compression and a slow, quiet release | Kenney carpet contacts and fabric movement |
 | Cushion | Airy fabric rustle | martian cloth recording |
 | Loop | Restrained tension creaks and short releases | Kenney creaks and belt handling |
@@ -12,7 +13,8 @@ The second sound pass replaces the shared wet character with **45 short clips ac
 | Dumpling | Heavier, muffled contacts | Kenney leather drop and cloth-belt movement |
 | Putty | Dry handling and friction | Kenney small-leather and belt recordings |
 | Dough | Soft kneading texture | Haydonus cookie dough recording, shortened and softened |
-| Jelly Slice / Prism | Dry blade friction and a short exit | Kenney knife drawing and slicing |
+| Rose Jelly | Muted fingertip contacts, quiet movement and a soft release | Same documented gel recordings as Jelly |
+| Mint Jelly | Dry blade friction and a short exit | Kenney knife drawing and slicing |
 
 These are edited foley analogues, not claims that every physical toy was recorded. In particular, the Butter bank is designed to suggest foam using carpet/fabric sounds. Loop tension uses creak/belt sounds. Both Resting and Free modes inherit their toy's bank.
 
@@ -35,6 +37,10 @@ Click the level beside the speaker to open the vertical volume fader. Drag up fo
 
 ## Verification
 
+Audio contexts retry activation on trusted pointer, touch, and keyboard input while sound is enabled, including after a toy switch or a browser interruption. Muting removes those recovery listeners immediately and never waits for a blocked `resume()` or recording download. Retired requests cannot overwrite a newer sound choice. A suspended context discards frozen contact/motion voices before playback resumes.
+
+`tests/audio-activation.test.ts` covers blocked activation, suspended/interrupted states, recovery failures, consent, and listener cleanup. The player tests cover mute/retry while startup is pending. With the development server running, `CHROME_PATH="/path/to/chrome" node qa/audio-smoke.mjs --webgl` checks trusted touch/keyboard recovery, blocked startup, mute, and switching to Jelly; `QA_ORIGIN` can override its default `http://127.0.0.1:5174`. It injects suspension and a pending resume into real browser audio contexts. Safari/iOS and Firefox should also be checked manually by enabling sound, switching toys, leaving/returning to the tab, and touching or using the keyboard again.
+
 The audio/asset tests cover distinct bank selection for all eight soft toys, no slime fallback, file hashes, PCM integrity, headroom, caching, retries, mute during loading, cleanup, variations and voice limits. `node qa/slice-smoke.mjs --audio-only` decodes and renders all nine banks in Chrome. All are audible under interaction and silent after mute; rendered peaks range from 0.035 to 0.116. Build: `npm run build:fly`.
 
-The prior full suite has an unrelated default-toy assertion in `tests/player.test.ts` expecting Jelly despite the Butter-first registry. Headphone listening is the subjective quality check; signal measurements cannot establish an ASMR response.
+Headphone listening is the subjective quality check; signal measurements cannot establish an ASMR response.

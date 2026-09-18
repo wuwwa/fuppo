@@ -46,22 +46,29 @@ export class BatchedGel {
     this.geometry.setAttribute('normal', new THREE.BufferAttribute(this.normals, 3).setUsage(THREE.DynamicDrawUsage));
     this.geometry.setAttribute('gelPart', new THREE.BufferAttribute(this.indices, 1).setUsage(THREE.DynamicDrawUsage));
     this.material = new THREE.MeshPhysicalMaterial({
-      color: mint ? '#dcffeb' : '#ffe9ee', roughness: mint ? .12 : .045, metalness: 0,
-      transmission: mint ? .92 : .96, ior: mint ? 1.35 : 1.46, thickness: height, attenuationColor: new THREE.Color(mint ? '#278a64' : '#d21d52'),
-      attenuationDistance: mint ? 1.65 : 2.65, clearcoat: mint ? .45 : 1, clearcoatRoughness: mint ? .10 : .035, envMapIntensity: mint ? .8 : .92,
+      // Keep a rose tint even along a short optical path. Volume absorption
+      // deepens the body; it should not be the only source of color, otherwise
+      // thin slices and fresh cut faces become almost white.
+      color: mint ? '#dcffeb' : '#f2829b', roughness: mint ? .12 : .105, metalness: 0,
+      transmission: mint ? .92 : .9, ior: mint ? 1.35 : 1.36, thickness: height, attenuationColor: new THREE.Color(mint ? '#278a64' : '#cf315b'),
+      attenuationDistance: mint ? 1.65 : 3.2, clearcoat: mint ? .45 : .48, clearcoatRoughness: mint ? .10 : .12, envMapIntensity: mint ? .8 : .65,
+      specularIntensity: mint ? 1 : .8,
     });
     this.material.onBeforeCompile = shader => {
       Object.assign(shader.uniforms, { gelPoses: { value: this.poses }, gelBounds: { value: this.bounds }, gelHeight: { value: height }, gelSoftness: { value: Number(mint) }, gelKnife: { value: this.knife }, gelBack: { value: this.backTarget.texture }, gelBackSize: { value: this.backSize } });
       shader.vertexShader = `attribute float gelPart; uniform vec4 gelPoses[48]; uniform float gelHeight; uniform float gelSoftness; uniform vec4 gelKnife;
-        varying float vGelPart; varying vec3 vGelLocal; varying float vGelHeight;\n${deformation}` + shader.vertexShader;
+        varying float vGelPart; varying vec3 vGelLocal; varying float vGelHeight; varying float vGelKnifeDistance;\n${deformation}` + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
         vec4 gelPose = gelPoses[int(gelPart + 0.5)];
         objectNormal = deformGelNormal(position, objectNormal, gelPose);`);
       shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
         vGelPart = gelPart; vGelLocal = position; vGelHeight = position.y * (1. - gelPose.w * .7);
+        float gelU = max(0., (position.y - .015) / gelHeight);
+        vec2 gelXZ = position.xz * (1. + gelPose.w * .35) + gelPose.xy + vec2(.8, .6) * gelPose.z * gelU * gelU;
+        vGelKnifeDistance = dot(gelXZ, gelKnife.xy) - gelKnife.z;
         transformed = deformGel(transformed, gelPose);`);
       shader.fragmentShader = `uniform vec4 gelBounds[48]; uniform float gelHeight; uniform float gelSoftness; uniform vec4 gelKnife; uniform sampler2D gelBack; uniform vec2 gelBackSize;
-        varying float vGelPart; varying vec3 vGelLocal; varying float vGelHeight;
+        varying float vGelPart; varying vec3 vGelLocal; varying float vGelHeight; varying float vGelKnifeDistance;
         float gelDepth(vec3 direction, vec3 viewPosition) {
           vec4 back = texture2D(gelBack, gl_FragCoord.xy / gelBackSize);
           if (abs(back.a * 64.0 - (vGelPart + 1.0)) < .2) {
@@ -78,19 +85,23 @@ export class BatchedGel {
       // Evaluate the narrow wire dent per pixel, so reflections follow its
       // continuous curve instead of revealing the surface triangulation.
       shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
-        if (gelSoftness > .5 && gelKnife.w > 0.) {
+        if (gelKnife.w > 0.) {
           float v = clamp(vGelHeight / gelHeight, 0., 1.);
-          float d = dot(vWorldPosition.xz, gelKnife.xy) - gelKnife.z;
+          float d = vGelKnifeDistance;
           float indent = exp(-d * d * 30.) * gelKnife.w;
           vec3 worldNormal = inverseTransformDirection(normal, viewMatrix);
           worldNormal.y /= max(.5, vGelHeight < gelHeight ? 1. - 3. * indent * v * v / gelHeight : 1.);
           worldNormal.xz -= worldNormal.y * 60. * d * indent * gelKnife.xy * v * v * v;
+          // The slab also spreads sideways beside the wire. Apply that part
+          // of the inverse-transpose so its wet highlight follows the dent.
+          float spread = .3 * (1. - gelSoftness) * indent * (1. - 60. * d * d);
+          worldNormal.xz -= gelKnife.xy * dot(worldNormal.xz, gelKnife.xy) * spread / (1. + spread);
           normal = normalize(mat3(viewMatrix) * worldNormal);
           nonPerturbedNormal = normal;
         }`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <transmission_fragment>', THREE.ShaderChunk.transmission_fragment.replace('material.thickness = thickness;', 'material.thickness = gelDepth(refract(-normalize(cameraPosition - vWorldPosition), inverseTransformDirection(normal, viewMatrix), 1.0 / ior), vViewPosition);'));
     };
-    this.material.customProgramCacheKey = () => 'batched-jelly-soft-prism-v3';
+    this.material.customProgramCacheKey = () => 'batched-jelly-soft-prism-v4';
     this.mesh = new THREE.Mesh(this.geometry, this.material); this.mesh.frustumCulled = false;
     this.backMaterial = new THREE.ShaderMaterial({ side: THREE.BackSide, toneMapped: false,
       uniforms: { gelPoses: { value: this.poses }, gelHeight: { value: height }, gelSoftness: { value: Number(mint) }, gelKnife: { value: this.knife } },
@@ -100,12 +111,12 @@ export class BatchedGel {
     });
     this.backMesh = new THREE.Mesh(this.geometry, this.backMaterial); this.backMesh.frustumCulled = false; this.backScene.add(this.backMesh);
   }
-  rebuild(pieces: readonly Piece[]) {
+  rebuild(pieces: readonly Piece[], resolution?: number) {
     let offset = 0; this.origins.length = 0;
     pieces.forEach((piece, index) => {
       const origin = center(piece.polygon); this.origins.push(origin);
       const polygon = piece.polygon.map(p => ({ x: p.x - origin.x, z: p.z - origin.z }));
-      const geometry = createGelSurface(polygon, origin, this.height, Number(this.mint));
+      const geometry = createGelSurface(polygon, origin, this.height, Number(this.mint), resolution);
       this.sizes[index] = Math.sqrt(area(polygon));
       const positions = geometry.attributes.position.array, normals = geometry.attributes.normal.array;
       const count = geometry.attributes.position.count;

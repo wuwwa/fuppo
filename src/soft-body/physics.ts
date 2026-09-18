@@ -22,7 +22,7 @@ export type Binding = { ids: number[]; weights: number[] };
 type Grab = { weights: Float64Array; target: Point; rawTarget:Point; consumedTarget:Point; filtered: Point;
   anchor: Point; localAnchor: Point; restAnchor:Point; normal: Point; verticalLoad: number; manualTwist:number;
   contact:Binding; contactStart:Point; contactRest:Point; contactLambda:Float64Array; start:Float64Array;
-  age:number; pressure:number; dentDepth:number; pulling:number; folding:number; peelStart:Point;
+  age:number; pressAge:number; yielded:Point; pressure:number; dentDepth:number; pulling:number; folding:number; peelStart:Point;
   peelTarget:Point; peelPressure:number };
 const index = (x: number, y: number, z: number) => (y * SIDE + z) * SIDE + x;
 
@@ -51,6 +51,7 @@ export class SoftBodyPhysics {
   private compression = 0;
   private previousCompression = 0;
   private compressionVelocity = 0;
+  private viscousCompression = 0;
   private twist = 0;
   private previousTwist = 0;
   private twistVelocity = 0;
@@ -120,6 +121,7 @@ export class SoftBodyPhysics {
   /** Cheap render-activity check; no volume calculations or allocations. */
   isAtRest() {
     if(this.adhesion?.active) return false;
+    if(this.viscousCompression>0.0001) return false;
     if (this.grabs.size || Math.abs(this.compression-(this.plastic?.compression ?? 0)) > 0.00015 || Math.abs(this.compressionVelocity) > 0.001 ||
       Math.abs(this.twist) > 0.0003 || Math.abs(this.twistVelocity) > 0.001) return false;
     for (let i = 0; i < this.positions.length; i++) {
@@ -260,7 +262,7 @@ export class SoftBodyPhysics {
     const grab:Grab={ weights, target: { x: 0, y: 0, z: 0 }, rawTarget:{x:0,y:0,z:0}, consumedTarget:{x:0,y:0,z:0}, filtered: { x: 0, y: 0, z: 0 },
       anchor:{...unpeeled}, localAnchor:local, restAnchor:restPoint, normal, verticalLoad, manualTwist:0, peelStart,
       contact,contactStart,contactRest,contactLambda:new Float64Array(3),
-      start:new Float64Array(this.positions), age:0, pressure:1, dentDepth:0, pulling:0, folding:0,
+      start:new Float64Array(this.positions), age:0, pressAge:0, yielded:{x:0,y:0,z:0}, pressure:1, dentDepth:0, pulling:0, folding:0,
       peelTarget:{x:0,y:0,z:0},peelPressure:1 };
     this.grabs.set(id,grab);this.strainContacts.push(grab);
     // Keep the existing rebound velocity when caught again; reversing it
@@ -335,7 +337,7 @@ export class SoftBodyPhysics {
     this.pullRelaxation=Math.max(this.pullRelaxation,this.pullAmount(g,g.target)*Math.min(1,distance/0.15));
     // The target follows at 38/s in step(). Transfer its missing motion at that
     // rate, with a smooth speed ceiling. Positions stay continuous at release.
-    const gain=8*Math.tanh(distance*38/8)/distance*(this.reducedMotion?0.25:1);
+    const gain=8*Math.tanh(distance*38/8)/distance*(this.reducedMotion?0.25:1)*(this.feel.viscoelastic?.elasticFraction ?? 1);
     const x=dx*gain,y=dy*gain,z=dz*gain;
     for(let i=0;i<COUNT;i++) {
       if(!this.invMass[i]) continue;
@@ -391,6 +393,7 @@ export class SoftBodyPhysics {
     this.velocities.fill(0);
     this.releaseAll();
     this.compression = this.previousCompression = this.compressionVelocity = 0;
+    this.viscousCompression=0;
     this.twist=this.previousTwist=this.twistVelocity=this.dentDepth=0;
     this.pullRelaxation=0;
     this.lastStrainedContact=null;
@@ -454,12 +457,18 @@ export class SoftBodyPhysics {
     for(const g of this.grabs.values()) {
       g.consumedTarget.x=g.rawTarget.x;g.consumedTarget.y=g.rawTarget.y;g.consumedTarget.z=g.rawTarget.z;
       g.age+=dt;
-      const creep=1-Math.exp(-g.age/this.feel.creepTime);
+      // Yielding materials sink with sustained pressure. Pulling must not count
+      // as a long press when the same finger comes back to the surface.
+      if(this.feel.foam || this.feel.viscoelastic) {
+        const load=Math.min(1,g.pressure);
+        g.pressAge=Math.min(this.feel.creepTime*8,(g.pressAge+dt*load)*Math.exp(-dt*(1-load)/0.18));
+      }
+      const creep=1-Math.exp(-((this.feel.foam || this.feel.viscoelastic)?g.pressAge:g.age)/this.feel.creepTime);
       verticalPressure=Math.max(verticalPressure,g.verticalLoad*g.pressure);
       // The strongest top contact controls the common volume-preserving squash;
       // each finger still contributes its own local indentation and pull.
       target=Math.max(target,Math.min(this.feel.foam?.maxCompression ?? 0.54,g.verticalLoad*g.pressure*(this.feel.pressDepth+
-        (this.feel.holdDepth-this.feel.pressDepth)*creep)));
+        (this.feel.holdDepth-this.feel.pressDepth)*(this.feel.viscoelastic?0:creep))));
       g.dentDepth=g.pressure*((this.feel.dentDepth+
         (this.feel.holdDentDepth-this.feel.dentDepth)*creep)*(1-g.verticalLoad)+
         (0.06+0.07*creep)*g.verticalLoad);
@@ -479,6 +488,17 @@ export class SoftBodyPhysics {
     // separate front/side hold must not suppress its rebound or make a dense
     // material recover faster when the top finger lifts.
     const compressionDrive=Math.min(1,verticalPressure);
+    if(this.feel.viscoelastic) {
+      // The elastic branch responds now; the viscous branch yields under a
+      // sustained load and drains after release. A short poke stores little
+      // delayed deformation, so it recovers sooner than a deep held squeeze.
+      // A side contact cannot preserve another finger's compression memory.
+      const feel=this.feel.viscoelastic;
+      const memoryTarget=verticalPressure*(this.feel.holdDepth-this.feel.pressDepth);
+      const time=memoryTarget>this.viscousCompression?feel.yieldTime:feel.recoveryTime;
+      this.viscousCompression+=(memoryTarget-this.viscousCompression)*(1-Math.exp(-dt/time));
+      target=Math.min(0.54,target+this.viscousCompression);
+    }
     const spring = this.feel.returnSpring+(this.feel.pressSpring-this.feel.returnSpring)*compressionDrive;
     const pressFriction=this.feel.returnDamping+(this.feel.pressDamping-this.feel.returnDamping)*compressionDrive;
     const friction = this.reducedMotion ? Math.max(2*Math.sqrt(spring), this.feel.returnDamping) :
@@ -519,6 +539,19 @@ export class SoftBodyPhysics {
       // Keep the touched patch under the pointer as the rest of the body
       // expands around it. Pressing down still lets the surface sink.
       const offset=this.grabOffset(g,g.target);
+      const stretch=this.feel.foam?.stretch ?? this.feel.viscoelastic;
+      if(stretch) {
+        // Two parallel responses: an immediate elastic stretch and a slower
+        // yielding component. Fast pulls initially load the material; slow pulls
+        // and held tension allow it to creep toward the same bounded target.
+        // Each contact owns its history, including during a partial release.
+        const yieldRate=1-Math.exp(-dt/stretch.yieldTime);
+        const delayed=(1-stretch.elasticFraction)*g.pulling;
+        for(const k of ['x','y','z'] as const) {
+          g.yielded[k]+=(offset[k]-g.yielded[k])*yieldRate;
+          offset[k]+=(g.yielded[k]-offset[k])*delayed;
+        }
+      }
       let resisted=follow;
       if(this.feel.kneading) {
         // Bound material speed, not pointer speed: a quick yank loads the dough,

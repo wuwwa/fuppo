@@ -1,6 +1,6 @@
-# Fiddy project guidance
+# Fuppo project guidance
 
-Fiddy is a browser-based collection of tactile fidget toys built with React, TypeScript, Three.js, and Vite.
+Fuppo is a browser-based collection of tactile fidget toys built with React, TypeScript, Three.js, and Vite.
 
 ## Working conventions
 

@@ -5,6 +5,7 @@ import type { SoftToyShape } from './profiles';
 
 export function createSoftGeometry(shape: SoftToyShape, detail = 31) {
   if(shape==='butter') return createButter(detail);
+  if(shape==='gel-cube') return createGelCube(detail);
   if(shape==='dough') return createDough();
   if(shape==='loop') return createLoop();
   if(shape==='star' || shape==='dumpling') return createSculptedShape(shape, detail);
@@ -49,6 +50,23 @@ function createButter(detail:number) {
     const marks=[-0.625,0,0.625].reduce((sum,mark)=>sum+Math.exp(-(((x-mark)/0.018)**2)),0);
     const y=rawY-0.012*marks*top*Math.exp(-((z/0.41)**8));
     position.setXYZ(i,x*cos-z*sin,y,x*sin+z*cos);
+  }
+  return restOnFloor(surface);
+}
+
+/** Broad faces reveal dents; rounded edges carry an uninterrupted highlight. */
+function createGelCube(detail:number) {
+  const half=0.84, radius=0.21, inner=half-radius;
+  const segments=Math.max(8,Math.min(28,Math.round(detail)));
+  const surface=new THREE.BoxGeometry(half*2,half*2,half*2,segments,segments,segments);
+  const position=surface.getAttribute('position');
+  const angle=-0.30,cos=Math.cos(angle),sin=Math.sin(angle);
+  for(let i=0;i<position.count;i++) {
+    const x=position.getX(i),y=position.getY(i),z=position.getZ(i);
+    const cx=THREE.MathUtils.clamp(x,-inner,inner),cy=THREE.MathUtils.clamp(y,-inner,inner),cz=THREE.MathUtils.clamp(z,-inner,inner);
+    const length=Math.hypot(x-cx,y-cy,z-cz);
+    const px=cx+(x-cx)*radius/length,py=cy+(y-cy)*radius/length,pz=cz+(z-cz)*radius/length;
+    position.setXYZ(i,px*cos-pz*sin,py,px*sin+pz*cos);
   }
   return restOnFloor(surface);
 }

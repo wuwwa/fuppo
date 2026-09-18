@@ -2,28 +2,34 @@
 
 A collection of interactive fidget toys and visual experiments. Squish jelly, stretch putty, and play with silk, light, and particles in your browser.
 
-Each soft toy has its own locally hosted CC0 foley bank: short dry contacts, fabric movement, handling textures, or dough; the cutters use separate knife sounds. See [audio sources and preparation](docs/ASMR_AUDIO.md).
+Soft toys use locally hosted CC0 material foley: short dry contacts, fabric movement, or handling textures; Mint Jelly uses separate knife sounds. Gel Cube and Rose Jelly share the documented gel recordings. See [audio sources and preparation](docs/ASMR_AUDIO.md).
+
+Rose Jelly (`?toy=jelly-slice`) uses direct touch: poke for a local dent, hold to sink deeper, or draw a groove that gently heals. Its seams stay connected underneath and close continuously; the slab remains available for fresh touches without a piece limit or required Reset. The wire, angle controls, tension meter and counter are removed from this toy. Up to five fingertips are supported; keyboard users move with arrows and hold Space to poke or draw. See [the interaction and visual notes](docs/JELLY_SLICE.md).
 
 **Jelly awakens** is available on the development server at `/?toy=jelly&bonus=demo`. The sparkle button beside Jelly’s name turns Jelly into an expressive blue slime for a short visit. Its expressions, playful motion and surrounding starlight unfold whether you handle it or simply watch; there are no targets, scores or completion requirements. It grows sleepy and returns gently to ordinary Jelly. Sound and reduced motion follow the shared controls. The earlier material comparison is at `/?toy=jelly&bonus=materials`. Preview controls are omitted from production builds. Activation is manual; see [the bonus direction and plan](docs/BONUS_ROUNDS.md).
 
 Butter (`?toy=butter`) imitates a slow-rise butter-stick squishy: a matte yellow block with navy SALTED BUTTER print, rounded edges, and shallow portion marks. Its foam compresses with limited sideways expansion; local dents linger and slowly recover after release. Hold to flatten, drag to stretch, then release and watch it rise. It supports the shared touch, keyboard, sound, and reset controls. See [the butter notes and follow-up ideas](docs/BUTTER.md).
 
-Butter, Cushion, Loop, Star, Putty and Dough also [peel off the floor](docs/STICKY_PEEL.md): keep pulling up and away through the sticky resistance until the base releases. Let go to settle it back down. Keyboard users can hold Space + Up.
+Gel Cube (`?toy=gel-cube`) responds to the pace of your touch. Quick pokes give shallow rebounds; a sustained squeeze sinks deeper and rises gradually. Slow pulls stretch farther than quick tugs, while steady tension keeps yielding. The gel bulges sideways as it compresses and always returns to its rounded cube. See [the material model and validation](docs/GEL_CUBE.md) and [the interaction standard and collection audit](docs/FIDGET_QUALITY.md).
+
+Butter, Cushion, Loop, Star and Putty also [peel off the floor](docs/STICKY_PEEL.md): keep pulling up and away through the sticky resistance until the base releases. Let go to settle it back down. Keyboard users can hold Space + Up.
 
 Butter opens first when visiting the home page and stays first in the collection. Favorite toys appear next. Direct toy links still open the toy they name. Preferences stay on your device and play remains available when storage is blocked.
 
 See [the product strategy](docs/PRODUCT_STRATEGY.md) for the adult, fidget-first direction, monetization research, and iPhone feasibility roadmap. See [daily-use validation](docs/DAILY_USE_REVIEW.md) for release evidence and the remaining physical-device and usability work.
 
-Each toy opens with its primary behavior: Jelly and Dumpling lift and toss; Loop and Star stretch; Cushion compresses; Putty kneads; Dough folds and merges. The earlier movement selector has been removed. See [primary toy behaviors](docs/MOVEMENT_MODES.md) for implementation, validation and comparison criteria.
+Each toy opens with its primary behavior: Jelly and Dumpling lift and toss; Loop and Star stretch; Cushion compresses; Putty kneads. The earlier movement selector has been removed. See [primary toy behaviors](docs/MOVEMENT_MODES.md) for implementation, validation and comparison criteria.
+
+Dough is [parked for future refinement](docs/PARKED_TOYS.md). Its implementation, assets and tests remain in source, but it is absent from the 16-toy collection and old Dough links open Butter.
 
 ## Run locally
 
 Requires Node.js 20.19+ or 22.12+ and npm.
 
 ```sh
-git clone https://github.com/wuwwa/Fiddy.git
-cd Fiddy
-npm install
+git clone https://github.com/wuwwa/Fiddy.git Fuppo
+cd Fuppo
+npm ci
 npm run dev
 ```
 
@@ -56,7 +62,11 @@ Run them sequentially for useful performance readings. `QA_ORIGIN` can override 
 
 ## Fly.io
 
-The Fly app is `fid`, at **https://fid.fly.dev**. Its configuration is in `fly.toml`.
+Fuppo runs on the existing Fly app `fid`, at **https://fid.fly.dev**. Keep `app = 'fid'` in `fly.toml` so the public address and deployment target stay the same. The product name does not need to match the hosting identifier.
+
+A future Fuppo custom domain can be added to this same app using [Fly's custom-domain setup](https://fly.io/docs/networking/custom-domain/), while `fid.fly.dev` remains available. No additional domain or alias is configured by the rename.
+
+The GitHub repository remains `wuwwa/Fiddy`; the setup commands above clone it into a `Fuppo` folder. The internal `fiddy-preferences-v1` storage key is retained so existing favorites and volume settings survive the rename on the same origin.
 
 ```sh
 fly deploy --remote-only --ha=false

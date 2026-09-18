@@ -1,8 +1,11 @@
 import { DEFAULT_AUDIO_VOLUME, normalizeVolume } from '../audio/volume';
+import { AudioActivation } from '../audio/activation';
 
 /** Short event chimes, created only after the shared sound control is enabled. */
 export class BonusChimes {
   private context: AudioContext | null = null;
+  private activation: AudioActivation | null = null;
+  private revision = 0;
   private master: GainNode | null = null;
   private volume = DEFAULT_AUDIO_VOLUME;
   private enabled = false;
@@ -11,14 +14,23 @@ export class BonusChimes {
   constructor(private readonly createContext: () => AudioContext = () => new AudioContext()) {}
   async setEnabled(enabled: boolean) {
     if (this.disposed) return;
-    this.enabled = enabled;
-    if (!enabled) { this.stop(); return; }
+    const revision = ++this.revision;
+    this.enabled = false;
+    if (!enabled) { void this.activation?.setEnabled(false); this.stop(); return; }
     const context = this.context ??= this.createContext();
     if (!this.master) {
       this.master = context.createGain(); this.master.gain.value = this.volume;
       this.master.connect(context.destination);
+      this.activation = new AudioActivation(context, () => this.stop());
     }
-    await context.resume();
+    try {
+      await this.activation!.setEnabled(true);
+      if (!this.disposed && revision === this.revision) this.enabled = true;
+    } catch (error) {
+      if (!this.disposed && revision === this.revision) {
+        void this.activation?.setEnabled(false); this.stop(); throw error;
+      }
+    }
   }
   setVolume(volume: number) {
     this.volume = normalizeVolume(volume);
@@ -39,5 +51,11 @@ export class BonusChimes {
     });
   }
   stop() { for (const voice of this.voices) { try { voice.stop(); } catch { /* Already ended. */ } } this.voices.clear(); }
-  dispose() { this.disposed = true; this.enabled = false; this.stop(); this.master?.disconnect(); this.master = null; void this.context?.close(); this.context = null; }
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true; this.enabled = false; ++this.revision;
+    this.activation?.dispose(); this.activation = null;
+    this.stop(); this.master?.disconnect(); this.master = null;
+    void this.context?.close().catch(() => {}); this.context = null;
+  }
 }

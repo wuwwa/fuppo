@@ -1,5 +1,6 @@
 import { loadFoley, foleyCharacter, type FoleyBank, type FoleyLoader, type FoleyMaterial } from '../audio/foley';
 import { DEFAULT_AUDIO_VOLUME, normalizeVolume } from '../audio/volume';
+import { AudioActivation } from '../audio/activation';
 
 export interface AudioMotion {
   contacts: number;
@@ -21,6 +22,7 @@ const unit = (value: number) => Number.isFinite(value) ? Math.max(0, Math.min(1,
 /** Recorded foley: three accents and one motion-controlled texture at most. */
 export class SoftBodyAudio {
   private context: AudioContext | null = null;
+  private activation: AudioActivation | null = null;
   private master: GainNode | null = null;
   private bank: FoleyBank | null = null;
   private loading: Promise<FoleyBank> | null = null;
@@ -46,16 +48,17 @@ export class SoftBodyAudio {
   async setEnabled(enabled: boolean) {
     if (this.disposed) return;
     const revision = ++this.revision;
-    if (!enabled) { this.enabled = false; this.stop(); return; }
+    if (!enabled) { void this.activation?.setEnabled(false); this.enabled = false; this.stop(); return; }
     if (!this.context) {
       this.context = this.createContext();
       this.master = this.context.createGain();
       this.master.gain.value = this.volume;
       this.master.connect(this.context.destination);
+      this.activation = new AudioActivation(this.context, () => this.stop());
     }
     const ctx = this.context;
     // Resume in the user activation call stack, before waiting for downloads.
-    const resume = ctx.resume();
+    const resume = this.activation!.setEnabled(true);
     const loading = this.loading ??= this.load(ctx, this.texture);
     try {
       const [, bank] = await Promise.all([resume, loading]);
@@ -65,6 +68,7 @@ export class SoftBodyAudio {
     } catch (error) {
       if (this.loading === loading) this.loading = null;
       if (revision === this.revision && !this.disposed) {
+        void this.activation?.setEnabled(false);
         this.enabled = false; this.stop(); throw error;
       }
     }
@@ -183,7 +187,11 @@ export class SoftBodyAudio {
 
   stop() {
     this.pendingPop = null;
-    for (const voice of this.voices) this.fade(voice);
+    for (const voice of this.voices) {
+      // A suspended clock cannot finish fades; discard stale voices before resume.
+      if (this.context?.state === 'running') this.fade(voice);
+      else this.disconnect(voice);
+    }
     this.lastMotion = -Infinity;
     this.lastSound = { press: -Infinity, release: -Infinity, pop: this.lastSound.pop };
   }
@@ -197,6 +205,7 @@ export class SoftBodyAudio {
   dispose() {
     if (this.disposed) return;
     this.disposed = true; this.enabled = false; this.revision++; this.pendingPop = null;
+    this.activation?.dispose(); this.activation = null;
     for (const voice of this.voices) this.disconnect(voice);
     this.master?.disconnect();
     void this.context?.close().catch(() => {});

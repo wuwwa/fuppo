@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Rose Jelly visual review</title>
+<style>
+  body{margin:24px;background:#f4e9e5;color:#653a41;font:15px system-ui}
+  #stage{width:480px;height:480px;position:relative;touch-action:none}
+  .toy-canvas{position:absolute;inset:0;width:100%;height:100%;outline:none;touch-action:none}
+  button,a{margin:12px 8px 0 0}output{display:block;margin-top:12px}
+</style>
+<h1>Rose Jelly visual review</h1>
+<div id="stage"></div>
+<button id="hold">Hold the centre</button><button id="release">Release</button>
+<button id="reset">Reset</button><button id="export">Export thumbnail</button>
+<a id="download" hidden download="jelly-slice.webp">Download thumbnail</a><output id="status">Loading</output>
+<script type="module" src="./healing-preview.ts"></script>
+</html>

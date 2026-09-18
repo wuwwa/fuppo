@@ -35,7 +35,7 @@ export class GelInclusions {
     this.mesh.frustumCulled = false; this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   }
   rebuild(model: SliceModel) { for (const point of this.points) point.part = model.pieces.findIndex(piece => inside(point, piece.polygon, point.radius + .05)); }
-  update() {
+  update(heightScale?: (x: number, z: number) => number) {
     let count = 0;
     for (const p of this.points) {
       if (p.part < 0) continue;
@@ -43,7 +43,8 @@ export class GelInclusions {
       const u = Math.max(0, Math.min(1, (p.y - .015) / this.gel.height)), sway = pose.z * u * u;
       const x = (p.x - origin.x) * (1 + pose.w * .35) + pose.x + .8 * sway, z = (p.z - origin.z) * (1 + pose.w * .35) + pose.y + .6 * sway;
       const d = x * knife.x + z * knife.y - knife.z, indent = Math.exp(-d * d * 30) * knife.w;
-      this.matrix.position.set(x, p.y * (1 - pose.w * .7) - indent * (p.y / this.gel.height) ** 3, z);
+      const y = p.y * (1 - pose.w * .7) - indent * (p.y / this.gel.height) ** 3;
+      this.matrix.position.set(x, heightScale ? .015 + (y - .015) * heightScale(x, z) : y, z);
       this.matrix.scale.setScalar(p.radius); this.matrix.updateMatrix(); this.mesh.setMatrixAt(count++, this.matrix.matrix);
     }
     this.mesh.count = count; this.mesh.instanceMatrix.needsUpdate = true;

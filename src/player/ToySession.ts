@@ -17,7 +17,7 @@ export class ToySession {
   private disposed = false;
   private failed = false;
   private started = false;
-  private soundQueue: Promise<void> | null = null;
+  private soundRevision = 0;
   private preferences: ToyPreferences;
 
   constructor(
@@ -103,29 +103,19 @@ export class ToySession {
     catch { this.fail('The bonus could not finish. Try again to restart Jelly.'); }
   }
 
-  setSound(enabled: boolean): Promise<void> {
+  async setSound(enabled: boolean): Promise<void> {
     this.preferences.sound = enabled;
-    const apply = async () => {
-      if (!this.active || !this.controller?.setSound) return;
-      try { await this.controller.setSound(this.preferences.sound); }
-      catch {
-        if (this.active) {
-          this.preferences.sound = false;
-          this.events.onSoundError('Sound couldn’t start. Tap to try again.');
-        }
+    const revision = ++this.soundRevision;
+    if (!this.active || !this.controller?.setSound) return;
+    // Never queue behind resume(): autoplay can leave it pending until another
+    // gesture. Both mute and retry must reach the backend in this call stack.
+    try { await this.controller.setSound(enabled); }
+    catch {
+      if (this.active && revision === this.soundRevision) {
+        this.preferences.sound = false;
+        this.events.onSoundError('Sound couldn’t start. Tap to try again.');
       }
-    };
-
-    // Start the first change in the tap/click call stack. Mobile Safari only
-    // allows AudioContext creation/resume while user activation is still live;
-    // putting every change behind Promise.then() loses that activation.
-    const next = this.soundQueue ? this.soundQueue.then(apply) : apply();
-    let tracked: Promise<void>;
-    tracked = next.finally(() => {
-      if (this.soundQueue === tracked) this.soundQueue = null;
-    });
-    this.soundQueue = tracked;
-    return tracked;
+    }
   }
 
   private fail(message: string) {

@@ -79,8 +79,11 @@ export function App() {
   }, [preferences]);
 
   useEffect(() => {
-    document.title = toy.name;
-    document.querySelector('meta[name="description"]')?.setAttribute('content', toy.description);
+    document.title = `${toy.name} · Fuppo`;
+    const description = `Fuppo — ${toy.description}`;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', description);
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', description);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', toy.theme.background);
   }, [toy]);
 

@@ -1,8 +1,8 @@
 import { jelly } from './jelly';
 import { cushion } from './cushion';
 import { butter } from './butter';
+import { gelCube } from './gel-cube';
 import { putty } from './putty';
-import { dough } from './dough';
 import { loop } from './loop';
 import { star } from './star';
 import { dumpling } from './dumpling';
@@ -15,7 +15,8 @@ import { jellySlice, jellyPrism } from './slicing';
 import type { ToyDefinition } from './types';
 
 /** Display order is collection order. Register finished, playable toys here. */
-export const toys: readonly ToyDefinition[] = [butter, jelly, cushion, putty, dough, loop, star, dumpling, asciiTide, liquidLight, astraSwirl, astraCursor, magneticDust, silk, jellySlice, jellyPrism];
+// Dough is parked in source for future refinement; see docs/PARKED_TOYS.md.
+export const toys: readonly ToyDefinition[] = [butter, gelCube, jelly, jellySlice, jellyPrism, cushion, putty, loop, star, dumpling, asciiTide, liquidLight, astraSwirl, astraCursor, magneticDust, silk];
 export const defaultToy = butter;
 
 export function findToy(id: string | null): ToyDefinition {

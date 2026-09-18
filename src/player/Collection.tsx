@@ -33,7 +33,7 @@ export function Collection({ open, selected, favoriteIds, onToggleFavorite, onCl
       if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose();
     }}>
     <div className="collection-heading">
-      <div><h2 id="collection-title">Fiddy</h2><p className="collection-intro">Something satisfying for your hands while your attention is elsewhere.</p></div>
+      <div><h2 id="collection-title">Fuppo</h2><p className="collection-intro">Something satisfying for your hands while your attention is elsewhere.</p></div>
       <button className="close-collection" onClick={onClose} aria-label="Close collection" autoFocus>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
       </button>

@@ -2,6 +2,28 @@
 
 The collection should reward different kinds of touch. The same gesture should feel and behave differently in gel, elastic rubber, foam, and dough. Keep these responses discoverable through movement and sound, with no scores, objectives, progress bars, or extra titles.
 
+## Touch as a source of material feel
+
+**Dependable payoff:** every intentional interaction should respond immediately, remain rewarding while it develops, and resolve satisfyingly whenever the person stops. Input shapes the path and intensity; completion does not depend on skill, a hidden objective, or continued play. Short gestures deserve a complete response of their own. See the [collection audit and next fidgets](FIDGET_QUALITY.md). Gel Cube is the first new implementation explicitly designed around this standard.
+
+Agreed direction, September 17, 2026: the relationship between a person's movement and the toy's response is part of the sensation. Treat hold duration, speed, distance and coordinated fingers as design inputs for perceived softness, weight, friction and resistance. A premium fidget should invite repetition through the quality and range of that response. These are design principles and prototype hypotheses; each toy's implementation and physical-device validation must establish which effects work.
+
+| Input | Material response to explore | Intended sensation |
+| --- | --- | --- |
+| Hold duration | Immediate contact followed by bounded, gradual indentation; recovery reflects the deformation | Sinking into a yielding material |
+| Drag speed | Material-specific resistance and flow; a quick pull can store more elastic strain while a slow pull allows reshaping | Thickness, elasticity or viscosity |
+| Drag and stretch distance | Increasing tension, visible thinning or compression, and a clearly signaled yielding point where appropriate | Working against resistance |
+| Two-finger spacing | Two anchored contact patches with deformation between them; distinguish separation from moving both fingers together | Gripping and stretching a substance |
+| Relative finger angle | Local torsion and wringing, with material-specific relaxation | Twisting something held in the hands |
+| Release speed and order | Distinct settling or recoil; releasing one finger preserves the other's contact and redistributes strain | Letting stored tension go |
+| Contact location and recent handling | Edge peeling, local dents and responses to already deformed regions | A coherent object with material memory |
+
+Recognize contact immediately and keep the grip predictable. Any difference between finger travel and surface travel must read as visible deformation, tension or slip; added input latency is not a substitute for resistance. Tune bounded response curves per material, normalize stretch to toy size, and derive speed from elapsed time so the intended feel survives screen-size and event-rate differences. Hold duration is a designed input, not a measurement of physical finger pressure.
+
+Align sound and optional device haptics with the same material events: contact, increasing strain, slip, detachment and release. Their timing and intensity should follow the toy's state. Actual vibration remains a platform-dependent enhancement requiring supported-device testing. Touch and visual response should remain satisfying with sound disabled and without vibration; preserve reduced-motion behavior and keyboard access.
+
+The existing hold-to-press, multi-contact deformation, pair-turn pressure relief, peel and release systems provide a foundation. Deepen those relationships deliberately, without assuming every toy needs every gesture. Compare variants on physical phones with ordinary one-finger use as well as two-finger exploration. Observe whether people can predict the response, distinguish materials and voluntarily repeat gestures; assess return use separately.
+
 ## Current iteration: strain, fatigue, release
 
 - Jelly is the most fragile gel. Hidden fatigue builds from actual deformation sustained over time: compression, stretching, and torsion can overwork the material until it gives way.

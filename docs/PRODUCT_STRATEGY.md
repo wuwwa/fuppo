@@ -1,4 +1,4 @@
-# Fiddy product strategy
+# Fuppo product strategy
 
 Research reviewed September 13, 2026. This is a future game plan, not an implemented economy or a revenue forecast. Start here for product and monetization decisions; see [daily-use validation](DAILY_USE_REVIEW.md) for the current release and [bonus transformations](BONUS_ROUNDS.md) for the agreed future experiment.
 
@@ -6,15 +6,19 @@ Research reviewed September 13, 2026. This is a future game plan, not an impleme
 
 **Something satisfying for your hands while your attention is elsewhere.** Adults are the initial audience. Ordinary phone use beside a laptop, television, or conversation is the first target; foldable and dual-display use is a separate feasibility track.
 
-Observed in the repository: 16 toys, each opening with its primary behavior; a shared player with lazy loading, pause/disposal, sound and reduced-motion handling; no accounts, remote analytics, or payment backend. Several toys share soft-body machinery. Sharing code is useful, but each toy must earn its place through a distinguishable feel. Existing desktop QA is substantial; it does not establish physical-iPhone performance, haptics, thermals, or demand.
+**Sensory character:** each shape should evoke a feeling, texture, scent or memory with the subtlety of coffee tasting notes. Let that intention guide its material response, appearance, optional sound and restrained description. See [the sensory direction and draft toy profiles](SENSORY_CHARACTER.md). The principle is the user's direction; the individual profiles are proposals to refine through use.
+
+Observed in the repository: 16 public toys, including Gel Cube, each opening with its primary behavior; a shared player with lazy loading, pause/disposal, sound and reduced-motion handling; no accounts, remote analytics, or payment backend. [Dough is parked](PARKED_TOYS.md) in source until its feel meets the collection's quality standard. Several toys share soft-body machinery. Sharing code is useful, but each toy must earn its place through a distinguishable feel. Existing desktop QA is substantial; it does not establish physical-iPhone performance, haptics, thermals, or demand.
 
 Favorites, actual toy previews and collection branding are implemented. The current homepage opens Butter; explicit toy links select the named toy. The next product question is whether people voluntarily return to a favorite. More toys, points, and deadlines cannot answer that question for us.
 
-**Agreed assessment:** Fiddy currently offers simple toys with promising physical interactions; repeat-use appeal remains unproven. The next refinement work should prioritize distinct material behavior, satisfying releases, discoverable gesture depth, and usefulness with little visual attention. Deepen Jelly, Putty, and Silk before expanding the collection. A touchscreen cannot supply a physical toy's actual resistance, so movement, sound and eventual native haptics must earn their own appeal through device testing.
+**Agreed assessment:** Fuppo currently offers simple toys with promising physical interactions; repeat-use appeal remains unproven. The next refinement work should prioritize distinct material behavior, satisfying releases, discoverable gesture depth, and usefulness with little visual attention. Deepen Jelly, Putty, and Silk; add a new toy only when it offers a distinct interaction, as with the selected Gel Cube. Design touch itself as a source of perceived resistance and material feel: hold duration, drag speed, stretch distance, finger spacing, twisting and release should shape the response continuously. Coordinate deformation, sound and optional device haptics around that response. The [touch design principles](INTERACTION_PLAN.md#touch-as-a-source-of-material-feel) define this direction; validate the resulting sensation on physical devices.
 
 Bonus systems should enrich toys people already enjoy. Evaluate ordinary play independently so rewards do not conceal weak mechanics. Favorites improve access to a toy; they do not establish a desire to return to it.
 
-**Current material behavior:** [Primary toy behaviors](MOVEMENT_MODES.md) give Jelly and Dumpling lifting, throwing, landing and catching; Loop and Star stretch, Cushion compresses, Putty kneads, and Dough folds and merges. The earlier movement toggle has been removed. Each shape keeps one collection card and its own material finish. A simple stage and shadow provide contact cues without recreating a room. Free motion may increase visual attention, so compare its usefulness beside another activity as well as its immediate appeal. The manual Jelly bonus comparison builds on this current behavior; ordinary play still needs independent evaluation.
+**Current material behavior:** [Primary toy behaviors](MOVEMENT_MODES.md) give Jelly and Dumpling lifting, throwing, landing and catching; Loop and Star stretch, Cushion compresses, and Putty kneads. The earlier movement toggle has been removed. Each shape keeps one collection card and its own material finish. A simple stage and shadow provide contact cues without recreating a room. Free motion may increase visual attention, so compare its usefulness beside another activity as well as its immediate appeal. The manual Jelly bonus comparison builds on this current behavior; ordinary play still needs independent evaluation.
+
+**Implemented locally: [Gel Cube](GEL_CUBE.md).** Quick pokes make shallow dents; sustained holds sink deeper; release recovers gradually. Immediate elastic travel and delayed yielding make slow pulls extend farther than quick pulls of the same length. Hold duration and displacement history work without pressure-sensitive hardware. The user identified this responsiveness and material fidelity as the standard for the collection. The [interaction standard and audit](FIDGET_QUALITY.md) make the payoff dependable at any point of release, without a success condition. Physical-phone feel remains to be evaluated.
 
 **Recommendation:** make the hands-on experience valuable by itself. Sell additional material experiences and optional collecting around it. Keep core play uninterrupted and keep existing toys available. Do not add popups, economy counters, or purchase prompts during a gesture.
 
@@ -28,7 +32,7 @@ The selected schedule targets approximately ten minutes of qualifying normal pla
 
 ## Reading the research
 
-The tables distinguish **industry examples** from **Fiddy hypotheses**. Revenue purpose, operational burden, product-fit judgments, and recommendations are our analysis, not claims that a source proves revenue uplift. A related source supports the business-model family, not an assertion that another company uses every proposed variant. This is a broad catalog relevant to this product, not an exhaustive list of every enterprise business model.
+The tables distinguish **industry examples** from **Fuppo hypotheses**. Revenue purpose, operational burden, product-fit judgments, and recommendations are our analysis, not claims that a source proves revenue uplift. A related source supports the business-model family, not an assertion that another company uses every proposed variant. This is a broad catalog relevant to this product, not an exhaustive list of every enterprise business model.
 
 Decisions mean **adopt** in the future direction, **experiment later** after evidence and design, or **avoid** for this product. None authorizes implementation or purchases now. Burden includes customer support, content production, commerce, and ongoing operations, not just programming.
 
@@ -38,7 +42,7 @@ Decisions mean **adopt** in the future direction, **experiment later** after evi
 |---|---|---|---|
 | Paid download | Revenue before first play; Apple's paid model [A] | Low–medium; storefront and updates | Adds trial friction. **Experiment later**, after a strong free demo. |
 | Permanent unlock | One payment for a defined expansion; non-consumable IAP [A] | Medium; entitlement restoration | Little interruption after purchase. **Adopt** as a first commercial candidate; avoid promising all future work forever. |
-| Toy / material packs | Sell distinct experiences; Fiddy hypothesis using non-consumables [A] | Medium; art, feel and QA per pack | Strongest fit. **Adopt**; preview exact contents before purchase. |
+| Toy / material packs | Sell distinct experiences; Fuppo hypothesis using non-consumables [A] | Medium; art, feel and QA per pack | Strongest fit. **Adopt**; preview exact contents before purchase. |
 | Bundles | Raise order value through grouped content; Supercell offers bundles [S] | Medium; owned-item treatment | **Experiment later** with real savings and no repurchase of owned items. |
 | Subscription | Recurring payment for recurring value; Apple's subscription model [A] | High; release cadence and churn support | **Experiment later** only after demonstrating reliable new content. A static toy shelf does not justify a subscription by itself. |
 | Season pass | Sell an optional reward track; Brawl Pass [B] | High; seasons, rewards, entitlement rules | Diverts attention toward completion. **Experiment later**, with purchased content remaining earnable. |
@@ -46,16 +50,16 @@ Decisions mean **adopt** in the future direction, **experiment later** after evi
 | Rewarded ads | Sell voluntary ad impressions in exchange for an item; AdMob [G] | High; SDK, consent, mediation, reward validation | Requires attention. **Experiment later** only in the collection, never to resume play. |
 | Interstitial ads | Monetize transitions; AdMob formats [G2] | Medium–high | Breaks the low-attention promise. **Avoid** forced full-screen ads. |
 | Banner ads | Sell ongoing screen exposure; AdMob formats [G2] | Medium–high | Competes with touch space and quiet visuals. **Avoid** in the toy player. |
-| Sponsorship | Partner funds a themed material pack; Fiddy hypothesis | High; sales, contracts and creative approvals | **Experiment later** for clearly identified optional packs. No branded interruption during play. |
-| Licensing / business sales | Sell a kiosk, installation or organization license; Fiddy hypothesis | High; sales cycle, support and deployment | **Experiment later** as a separate channel. Do not claim clinical benefit without evidence. |
-| Merchandise | Margin from physical toys or branded objects; physical-goods category [A2], Fiddy hypothesis | High; manufacturing, shipping and returns | **Experiment later** after audience demand; keep purchasing outside play. |
-| Affiliate revenue | Commission on relevant physical products; FTC disclosure guidance [F2], Fiddy hypothesis | Medium; partners and disclosure | **Experiment later** on an optional editorial page, not beside a fingertip. |
+| Sponsorship | Partner funds a themed material pack; Fuppo hypothesis | High; sales, contracts and creative approvals | **Experiment later** for clearly identified optional packs. No branded interruption during play. |
+| Licensing / business sales | Sell a kiosk, installation or organization license; Fuppo hypothesis | High; sales cycle, support and deployment | **Experiment later** as a separate channel. Do not claim clinical benefit without evidence. |
+| Merchandise | Margin from physical toys or branded objects; physical-goods category [A2], Fuppo hypothesis | High; manufacturing, shipping and returns | **Experiment later** after audience demand; keep purchasing outside play. |
+| Affiliate revenue | Commission on relevant physical products; FTC disclosure guidance [F2], Fuppo hypothesis | Medium; partners and disclosure | **Experiment later** on an optional editorial page, not beside a fingertip. |
 
 First pricing work should test willingness to pay for a specific pack. No price, conversion target, or revenue estimate is established yet. Model contribution as net receipts minus refunds, platform/payment costs, content production, hosting, support and acquisition; do not confuse gross purchases with profit. Subscription revenue needs churn assumptions; ad revenue needs actual eligible impressions and fill rates.
 
 ## Progression and earned collecting
 
-These are Fiddy hypotheses informed by reward-track and character-unlock examples [B, U]. They are not current functionality. Earned collecting is a later decision than the [Jelly transformation experiment](BONUS_ROUNDS.md), which has no currency or collectible reward.
+These are Fuppo hypotheses informed by reward-track and character-unlock examples [B, U]. They are not current functionality. Earned collecting is a later decision than the [Jelly transformation experiment](BONUS_ROUNDS.md), which has no currency or collectible reward.
 
 | Mechanism | Revenue / retention purpose and example | Burden | Effect; recommendation |
 |---|---|---|---|
@@ -75,14 +79,14 @@ Before a collecting prototype, choose and document earning intervals, eligible g
 | Rarity pools | Make some outcomes more desirable; randomized reward tiers [D] | High; odds and content valuation | **Experiment later** for earned cosmetics; no claim that rare means better fidget physics. |
 | Featured banners | Concentrate demand on a temporary pool; Character Event Wishes [H] | High; rotation and support | **Experiment later** with earned rewards and clear reruns; keep the player separate. |
 | Rate boosts | Increase appeal of a featured item; Wish guarantee/featured rules [H] | High; exact conditional odds | **Experiment later**; show actual probabilities, not just “UP.” |
-| Soft / hard pity | Increasing chances / a maximum attempts guarantee; Wish guarantees [H] | High; persistent counters and simulation | **Experiment later**; source establishes guarantees, not a universal soft-pity curve. Publish any Fiddy curve and exact-item ceiling. |
+| Soft / hard pity | Increasing chances / a maximum attempts guarantee; Wish guarantees [H] | High; persistent counters and simulation | **Experiment later**; source establishes guarantees, not a universal soft-pity curve. Publish any Fuppo curve and exact-item ceiling. |
 | Guarantee carryover | Preserve attempts across rotations; shared Character Event Wish counters [H] | High; pool migration | **Adopt if randomness is introduced**. Avoid expiring paid progress. |
 | Duplicate conversion | Turn repeats into another reward; Genshin duplicate compensation [H2] | High; conversion valuation | **Experiment later** only if repeats have useful, clearly priced value. |
-| Duplicate protection | Improve chances of something unowned; Fiddy hypothesis, compare conversion [H2] | Medium–high | **Prefer over duplicates** if earned random packs are tested. |
-| Crafting / exchange | Convert fragments into a chosen item; Fiddy hypothesis, compare currency compensation [H2] | High; conversion rates and balances | **Experiment later**; provide deterministic ownership, not several opaque exchanges. |
+| Duplicate protection | Improve chances of something unowned; Fuppo hypothesis, compare conversion [H2] | Medium–high | **Prefer over duplicates** if earned random packs are tested. |
+| Crafting / exchange | Convert fragments into a chosen item; Fuppo hypothesis, compare currency compensation [H2] | High; conversion rates and balances | **Experiment later**; provide deterministic ownership, not several opaque exchanges. |
 | Wishlist / targeted guarantee | Let users aim at a specific reward; historical Epitomized Path [H3] | High; selection/reset semantics | **Experiment later**; changing a wishlist should not silently delete progress. Historical source is not current balance guidance. |
 | Single versus multi-pulls | Reduce purchase friction; proposed one-pack / ten-pack UI | Medium–high | **Avoid paid bulk-pull pressure**; batching earned reveals can be optional. Source [H] informs guarantees, not an assumed batch discount. |
-| Reveal presentation | Make acquisition memorable; Fiddy hypothesis | Medium; animation, audio and accessibility | **Experiment later**; skippable, reduced-motion aware, and outside play. **Avoid** fake near-misses and false scarcity cues. |
+| Reveal presentation | Make acquisition memorable; Fuppo hypothesis | Medium; animation, audio and accessibility | **Experiment later**; skippable, reduced-motion aware, and outside play. **Avoid** fake near-misses and false scarcity cues. |
 
 Paid gacha is **deferred**, not the recommended first business model. If reconsidered, compare it directly against fixed-price ownership and earned randomness. Simulate probability distributions, duplicates, worst-case acquisition cost, and guarantee transitions before any launch. Publish base odds, conditional odds, carryover/reset behavior, and whether the guarantee covers the exact advertised item or merely its rarity class.
 
@@ -94,7 +98,7 @@ Paid gacha is **deferred**, not the recommended first business model. If reconsi
 | Rotating shop | Concentrate attention on selected items; Supercell seasonal specials [S] | Medium–high | **Experiment later** with honest dates and a permanent basic catalog. |
 | Event exclusives / reruns | Reward early participation while allowing later access; Fortnite's possible later shop availability [E] | High; availability promises | **Experiment later** with published return policy; never imply a guaranteed rerun unless committed. |
 | Daily / weekly rewards | Build a recurring check-in; Brawl Stars daily-win rewards [D] | Medium–high | **Experiment later** with flexible weekly discovery; avoid mandatory daily attendance. |
-| Streaks | Create continuity and loss aversion; Fiddy hypothesis | Medium | **Avoid** loss of earned value after a missed day. A cumulative non-resetting history is a better hypothesis. |
+| Streaks | Create continuity and loss aversion; Fuppo hypothesis | Medium | **Avoid** loss of earned value after a missed day. A cumulative non-resetting history is a better hypothesis. |
 | Expiring passes | Set a deadline to buy and finish; seasonal pass model [B] | High | **Avoid** paid-content completion pressure; distinguish purchase window from permanent ownership. |
 | Social status | Let ownership act as identity; Brawl Pass titles/cosmetics [B] | High if social features are added | **Experiment later** with optional collection sharing; no leaderboards for time spent or money paid. |
 | Reminders / comeback events | Reactivate interest; hypothetical new-material reminder | Medium–high; opt-in and delivery | **Experiment later** after users request them. No “your toy misses you” guilt or repeated deadlines. |
@@ -119,7 +123,7 @@ These are hypotheses to evaluate, not claims of effectiveness. Supercell's store
 
 Apple requires disclosure of odds before purchase for paid randomized virtual items [A2]. Its guidelines also address purchased currency expiry, purchase restoration, subscriptions, and minimum app functionality; recheck the current rules for the target storefront before implementation. An adults-first positioning is not age assurance by itself.
 
-The FTC's HoYoverse case alleged misleading odds and costs, including confusing currency exchanges [F]. Its settlement is case-specific, not a universal implementation checklist. Fiddy should make real cost and exact entitlements legible, and should review age, privacy, refunds and regional requirements before selling randomized rewards.
+The FTC's HoYoverse case alleged misleading odds and costs, including confusing currency exchanges [F]. Its settlement is case-specific, not a universal implementation checklist. Fuppo should make real cost and exact entitlements legible, and should review age, privacy, refunds and regional requirements before selling randomized rewards.
 
 Do an iPhone feasibility spike **before** choosing a wrapper, a native renderer, or a rewrite:
 

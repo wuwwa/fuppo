@@ -5,9 +5,10 @@ import { resolveToyRoute } from '../src/player/navigation.ts';
 import { toys } from '../src/toys/registry.ts';
 const read = (value: unknown) => readPreferences({ getItem: () => JSON.stringify(value) });
 test('preferences validate version, IDs and duplicate favorites', () => {
-  assert.deepEqual(read({ version: 1, favoriteIds: ['putty', 'missing', 'putty', 3, 'jelly'], lastToyId: 'silk' }),
+  assert.deepEqual(read({ version: 1, favoriteIds: ['putty', 'missing', 'dough', 'putty', 3, 'jelly'], lastToyId: 'silk' }),
     { version: 1, favoriteIds: ['putty', 'jelly'], lastToyId: 'silk' });
-  for (const value of [null, [], { version: 2 }, { version: 1, favoriteIds: false, lastToyId: 'gone' }])
+  for (const value of [null, [], { version: 2 }, { version: 1, favoriteIds: false, lastToyId: 'gone' },
+    { version: 1, favoriteIds: ['dough'], lastToyId: 'dough' }])
     assert.deepEqual(read(value), { version: 1, favoriteIds: [], lastToyId: null });
 });
 test('unavailable and malformed storage does not block play or saving', () => {

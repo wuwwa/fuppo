@@ -1,5 +1,7 @@
 # Adding a toy
 
+Begin with the toy's [sensory character](SENSORY_CHARACTER.md): a few concrete notes and the feeling or memory its material response should evoke. Translate that intention into contact, resistance and release, then write a restrained collection description. Keep gesture instructions explicit.
+
 The collection has three layers:
 
 1. **Toy definitions** describe the name, icon, theme, instructions, and lazy loader. They contain no rendering code.

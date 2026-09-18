@@ -8,8 +8,8 @@ September 13, 2026. Product direction and future monetization research live in [
 - Explicit valid toy links win over preferences. Invalid/empty explicit IDs retain the Jelly fallback and existing URL correction. Other query parameters and fragments survive navigation.
 - Collection cards have independent 48 × 48 CSS-pixel favorite buttons. Favorites sort first in registry order; other toys follow once each. Toggling keeps the dialog open and focus on the same button.
 - All 15 toys have actual render captures totaling approximately **33 KB** in WebP format. Opening the collection mounts lazy images, not toy simulations. A failed preview falls back to the existing icon. Short mobile descriptions remain visible.
-- The collection identifies Fiddy and its product promise. Player controls and gestures remain unchanged.
-- `fiddy-preferences-v1` holds a version, favorite IDs and last toy ID. Reads validate IDs and remove duplicates; blocked, corrupt or quota-limited storage does not block play. Existing Silk palette and Shapes drawing data use their original keys.
+- The collection identifies Fuppo and its product promise. Player controls and gestures remain unchanged.
+- `fiddy-preferences-v1` is retained as a compatibility key after the Fuppo rename. It holds a version, favorite IDs and last toy ID. Reads validate IDs and remove duplicates; blocked, corrupt or quota-limited storage does not block play. Existing Silk palette and Shapes drawing data use their original keys.
 
 No economy, payment, account, analytics, install/offline system or production deployment is part of this change. Existing uncommitted touch-interface edits were preserved.
 

@@ -9,7 +9,7 @@ const distanceXZ = (a: Vertex, b: Vertex) => (a[0] - b[0]) ** 2 + (a[2] - b[2]) 
 /** The same continuous crown is retained by every fragment after cutting. */
 export function crown(x: number, z: number, softness = 0) { return (.14 + softness * .06) * Math.exp(-(.85 - softness * .3) * (x * x + z * z)); }
 
-export function createGelSurface(polygon: Point[], origin: Point, height: number, softness = 0) {
+export function createGelSurface(polygon: Point[], origin: Point, height: number, softness = 0, resolution = .23 - softness * .05) {
   const shape = new THREE.Shape(polygon.map(p => new THREE.Vector2(p.x, -p.z)));
   const bevel = Math.min(.11 + softness * .07, Math.sqrt(area(polygon)) * (.065 + softness * .015));
   const coarse = new THREE.ExtrudeGeometry(shape, { depth: height - bevel * 2, bevelEnabled: true, bevelSegments: 5, steps: 1, bevelSize: bevel, bevelThickness: bevel, bevelOffset: -bevel, curveSegments: 1 });
@@ -29,7 +29,7 @@ export function createGelSurface(polygon: Point[], origin: Point, height: number
   }
   function subdivide(a: Vertex, b: Vertex, c: Vertex, depth: number) {
     const ab = distanceXZ(a, b), bc = distanceXZ(b, c), ca = distanceXZ(c, a), longest = Math.max(ab, bc, ca);
-    if (longest < (.23 - softness * .05) ** 2 || depth >= 10 || Math.max(a[1], b[1], c[1]) < .02) { emit(a); emit(b); emit(c); return; }
+    if (longest < resolution ** 2 || depth >= (resolution < .15 ? 14 : 10) || Math.max(a[1], b[1], c[1]) < .02) { emit(a); emit(b); emit(c); return; }
     if (ab === longest) { const m = mid(a, b); subdivide(a, m, c, depth + 1); subdivide(m, b, c, depth + 1); }
     else if (bc === longest) { const m = mid(b, c); subdivide(a, b, m, depth + 1); subdivide(a, m, c, depth + 1); }
     else { const m = mid(c, a); subdivide(a, b, m, depth + 1); subdivide(m, b, c, depth + 1); }

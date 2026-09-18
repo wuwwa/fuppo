@@ -108,9 +108,22 @@ try {
   const {targetId}=await send('Target.createTarget',{url:'about:blank'},null);
   ({sessionId:session}=await send('Target.attachToTarget',{targetId,flatten:true},null));
   await send('Page.enable');await send('Runtime.enable');await send('Log.enable');await send('WebAudio.enable');
+  await send('Page.addScriptToEvaluateOnNewDocument',{source:`
+    window.__audioContexts=[];window.__blockAudioResume=false;
+    const NativeAudioContext=window.AudioContext;
+    window.AudioContext=class extends NativeAudioContext {
+      pending=[];resumeCalls=0;
+      constructor(...args){super(...args);window.__audioContexts.push(this);}
+      resume(){
+        this.resumeCalls++;
+        if(window.__blockAudioResume)return new Promise((resolve,reject)=>this.pending.push({resolve,reject}));
+        return super.resume().then(()=>{this.pending.splice(0).forEach(p=>p.resolve());});
+      }
+    };
+  `});
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
-  await send('Page.navigate',{url:`http://127.0.0.1:5174/?toy=cushion${backend==='webgl'?'&renderer=webgl':''}`});
+  await send('Page.navigate',{url:`${process.env.QA_ORIGIN ?? 'http://127.0.0.1:5174'}/?toy=cushion${backend==='webgl'?'&renderer=webgl':''}`});
   await waitFor(data=>data.state?.entrance>=0.95,'Toy readiness',25000);
   const initialVolume=await evaluate(`document.querySelector('.volume-slider')?.value`);
   if(initialVolume!=='80')throw new Error(`Unexpected initial volume: ${initialVolume}`);
@@ -178,6 +191,38 @@ try {
   await waitFor(data=>data.state?.contactCount===0 && !data.state.audio.gestureActive && data.state.audio.transientVoices===0,'Release must finish all voices');
   await record('release finishes voices');
 
+  // Model a browser interruption with a real suspended AudioContext. Recovery
+  // must happen through trusted input without another sound-toggle cycle.
+  for(const gesture of ['keyboard','touch']) {
+    await send('Runtime.evaluate',{expression:'Promise.all(window.__audioContexts.map(c=>c.suspend()))',awaitPromise:true});
+    assert.equal(await evaluate(`window.__audioContexts[0].state`),'suspended');
+    if(gesture==='keyboard') {
+      await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Shift',code:'ShiftLeft',windowsVirtualKeyCode:16});
+      await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Shift',code:'ShiftLeft',windowsVirtualKeyCode:16});
+    } else {
+      await touch('touchStart',[{id:40,x:195,y:423}]);await touch('touchEnd',[]);
+    }
+    await waitFor(()=>contexts.size>0 && [...contexts.values()].every(state=>state==='running'),gesture+' resumes audio');
+    await touch('touchStart',points);await moveHands(points);await touch('touchEnd',[]);
+    await record(gesture+' recovers suspended audio and plays again');
+  }
+
+  await click('button[aria-label="Mute cushion sounds"]');
+  await send('Runtime.evaluate',{expression:'Promise.all(window.__audioContexts.map(c=>c.suspend()))',awaitPromise:true});
+  await evaluate('window.__blockAudioResume=true');
+  await click('button[aria-label="Enable cushion sounds"]');
+  assert.ok(await evaluate('window.__audioContexts[0].pending.length>0'),'Enable waits for browser permission');
+  await click('button[aria-label="Mute cushion sounds"]');
+  assert.equal(await evaluate(`document.querySelector('.sound-toggle').getAttribute('aria-pressed')`),'false');
+  const mutedCalls=await evaluate('window.__audioContexts[0].resumeCalls');
+  await touch('touchStart',points);await touch('touchEnd',[]);
+  assert.equal(await evaluate('window.__audioContexts[0].resumeCalls'),mutedCalls,'Muted gestures cannot recover audio');
+  await click('button[aria-label="Enable cushion sounds"]');
+  await evaluate('window.__blockAudioResume=false');
+  await touch('touchStart',points);await moveHands(points);await touch('touchEnd',[]);
+  await waitFor(data=>data.state?.audio?.enabled && data.state.audio.contextState==='running','Pending resume recovers');
+  await record('mute and retry remain usable while resume is pending');
+
   await touch('touchStart',[{id:30,x:195,y:423}]);await moveHands([{id:30,x:195,y:423}]);
   await click('button[aria-label="Mute cushion sounds"]');await touch('touchEnd',[]);
   await waitFor(data=>data.state?.audio && !data.state.audio.enabled && !data.state.audio.gestureActive && data.state.audio.transientVoices===0,'Mute must clear audio');
@@ -192,13 +237,18 @@ try {
   await waitFor(data=>data.state?.audio?.enabled,'Re-enable before switching');
   const oldContexts=[...contexts].filter(([,state])=>state==='running').map(([id])=>id);
   if(oldContexts.length!==1)throw new Error(`Expected one shared context before switch: ${JSON.stringify([...contexts])}`);
-  await click('button[aria-label="Open toy collection"]');await delay(150);
+  await click('.collection-trigger');await delay(150);
   await click('a[href*="toy=jelly"]');
   await waitFor(data=>data.state?.shape==='jelly' || data.state?.shape==='pebble' && data.state?.entrance>=0.95,'Toy switch readiness',25000);
   const restoredVolume=await evaluate(`document.querySelector('.volume-slider')?.value`);
   if(restoredVolume!=='100')throw new Error(`Volume did not follow toy switch: ${restoredVolume}`);
   await waitFor(()=>oldContexts.every(id=>['closed','destroyed'].includes(contexts.get(id))),'Old audio context must close');
   await record('toy switch closes old context');
+  assert.equal(await evaluate(`document.querySelector('.sound-toggle').getAttribute('aria-pressed')`),'true','Sound consent follows the toy switch');
+  await send('Runtime.evaluate',{expression:`Promise.all(window.__audioContexts.filter(c=>c.state!=='closed').map(c=>c.suspend()))`,awaitPromise:true});
+  await touch('touchStart',[{id:60,x:195,y:423}]);await touch('touchEnd',[]);
+  await waitFor(()=>[...contexts.values()].filter(state=>state==='running').length===2,'New Jelly foley and chimes recover');
+  await record('sound recovers after switching to Jelly');
   if(errors.length)throw new Error(`Browser errors: ${JSON.stringify(errors)}`);
   console.log(JSON.stringify({label:'passed',contextEvents}));
   await writeFile(join(artifacts,`audio-${backend}-results.json`),JSON.stringify({backend,results,contextEvents,errors},null,2));

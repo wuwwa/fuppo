@@ -11,7 +11,7 @@ import './style.css';
 export function mountSlice(host: HTMLElement, context: ToyContext, kind: SliceKind): ToyController | null {
   if (context.signal.aborted) return null;
   const canvas = document.createElement('canvas'); canvas.className = 'toy-canvas slice-canvas'; canvas.tabIndex = 0;
-  canvas.setAttribute('role', 'application'); canvas.setAttribute('aria-label', kind === 'slab' ? 'Jelly Slice' : 'Jelly Prism');
+  canvas.setAttribute('role', 'application'); canvas.setAttribute('aria-label', kind === 'slab' ? 'Rose Jelly' : 'Mint Jelly');
   canvas.setAttribute('aria-describedby', 'toy-instructions keyboard-instructions');
   const status = document.createElement('p'); status.className = 'slice-status sr-only'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   const tensionCue = document.createElement('div'); tensionCue.className = 'slice-tension floating-surface'; tensionCue.hidden = true;

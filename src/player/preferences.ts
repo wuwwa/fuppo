@@ -2,6 +2,7 @@ import { defaultToy, toys } from '../toys/registry';
 import type { ToyMode } from '../toys/types';
 import { normalizeVolume } from '../audio/volume';
 
+// Retain the original key so the Fuppo rename preserves existing favorites and volume.
 export const preferenceKey = 'fiddy-preferences-v1';
 export interface PlayerPreferences { version: 1; favoriteIds: string[]; lastToyId: string | null; toyModes?: Record<string, ToyMode>; volume?: number }
 type StoragePort = Pick<Storage, 'getItem' | 'setItem'>;

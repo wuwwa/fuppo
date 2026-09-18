@@ -3,7 +3,13 @@ import type { AdhesionFeel } from './adhesion';
 
 export interface SoftBodyFeel {
   adhesion?: AdhesionFeel;
-  foam?: { lateralExpansion: number; recoveryTime: number; volumeCompliance: number; maxCompression: number };
+  /** Dense gel: immediate elastic travel with reversible yielding under load. */
+  viscoelastic?: { elasticFraction: number; yieldTime: number; recoveryTime: number };
+  foam?: {
+    lateralExpansion: number; recoveryTime: number; volumeCompliance: number; maxCompression: number;
+    /** Immediate elastic travel plus slower yielding under a held stretch. */
+    stretch?: { elasticFraction: number; yieldTime: number };
+  };
   kneading?: { followRate:number; speedLimit:number; workRate:number };
   plasticity?: { dwell:number; yield:number; rate:number; maxOffset:number; maxCompression:number };
   stiffness: number;
@@ -31,7 +37,7 @@ export interface SoftBodyFeel {
   twistReturnDamping: number;
 }
 
-export type SoftToyShape = 'pebble' | 'cushion' | 'butter' | 'loop' | 'star' | 'dumpling' | 'putty' | 'dough';
+export type SoftToyShape = 'pebble' | 'cushion' | 'butter' | 'gel-cube' | 'loop' | 'star' | 'dumpling' | 'putty' | 'dough';
 export type MaterialReaction = { kind:'solid' } | { kind:'pop'; threshold:number; relaxation:number; strainOnset:number };
 
 export interface SoftToyProfile {
@@ -99,13 +105,14 @@ export const butterProfile: SoftToyProfile = {
   feel: {
     ...cushionProfile.feel,
     adhesion: { onset: .8, distance: 1.7, rate: .58, releaseStretch: .94, releaseHold: .5 },
-    foam: { lateralExpansion: 0.10, recoveryTime: 1.6, volumeCompliance: 0.0015, maxCompression: 0.72 },
+    foam: { lateralExpansion: 0.10, recoveryTime: 1.6, volumeCompliance: 0.0015, maxCompression: 0.72,
+      stretch: { elasticFraction: 0.48, yieldTime: 0.38 } },
     stiffness: 5, damping: 26, edgeCompliance: 0.025,
     dragLimit: 1.12, pressDragLimit: 0.42, pullReleaseTime: 1.4,
-    pressDepth: 0.38, holdDepth: 0.68, creepTime: 0.6,
+    pressDepth: 0.26, holdDepth: 0.68, creepTime: 0.95,
     pressSpring: 70, pressDamping: 25,
     returnSpring: 9, returnDamping: 19,
-    tapKick: 0.08, pokeKick: 0.08, dentDepth: 0.22, holdDentDepth: 0.52,
+    tapKick: 0.08, pokeKick: 0.08, dentDepth: 0.14, holdDentDepth: 0.52,
     twistSpring: 30, twistDamping: 22, twistReturnSpring: 9, twistReturnDamping: 18,
   },
   material: {
@@ -114,6 +121,28 @@ export const butterProfile: SoftToyProfile = {
     clearcoat: 0.035, clearcoatRoughness: 0.5,
   },
   rippleStrength: 0, soundPitch: 0.48, soundTexture: 'foam',
+};
+
+/** Incompressible gel yields slowly but always returns to its rounded cube. */
+export const gelCubeProfile: SoftToyProfile = {
+  label: 'gel cube', shape: 'gel-cube', reaction: { kind: 'solid' },
+  feel: {
+    ...jellyProfile.feel,
+    viscoelastic: { elasticFraction: 0.38, yieldTime: 0.7, recoveryTime: 0.85 },
+    stiffness: 16, damping: 17, edgeCompliance: 0.0021,
+    dragLimit: 0.95, pressDragLimit: 0.55, pullCompliance: 0.000014,
+    pullReleaseTime: 0.7, grabStrength: 850,
+    pressDepth: 0.12, holdDepth: 0.44, creepTime: 0.85,
+    pressSpring: 135, pressDamping: 23, returnSpring: 105, returnDamping: 21,
+    tapKick: 0.65, pokeKick: 0.55, dentDepth: 0.13, holdDentDepth: 0.62,
+    twistSpring: 48, twistDamping: 18, twistReturnSpring: 30, twistReturnDamping: 12,
+  },
+  material: {
+    surface: 'gel', color: 0xd0f2f4, roughness: 0.16, transmission: 0.86,
+    thickness: 1.7, ior: 1.4, absorption: 0x208fa2, absorptionDistance: 1.7,
+    clearcoat: 0.14, clearcoatRoughness: 0.14,
+  },
+  rippleStrength: 0.06, soundPitch: 0.72, soundTexture: 'gel',
 };
 
 export const loopProfile: SoftToyProfile = {

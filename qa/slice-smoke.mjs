@@ -82,7 +82,9 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: 1100, height: 800, deviceScaleFactor: 1, mobile: false });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__sliceAudio=[];const AC=window.AudioContext;window.AudioContext=class extends AC{constructor(...a){super(...a);window.__sliceAudio.push(this)}};` });
   if (!process.argv.includes('--audio-only')) {
-  for (const toy of ['jelly-slice', 'jelly-prism']) {
+  // Jelly Slice now uses the healing contact field; this suite exercises the
+  // separate Prism wire interaction and its bounded fragment renderer.
+  for (const toy of ['jelly-prism']) {
     await send('Page.navigate', {url:`${origin}/?toy=${toy}`});
     await waitFor(s=>s?.knife?.canCut, `${toy} ready`);await delay(200);
     const baseline=await stats();record(`${toy} new gel and knife`,{state:baseline,screenshot:await screenshot(`${toy}-desktop`)});
@@ -222,7 +224,7 @@ try {
   record(kind+': one versus 48 pieces, fixed draw count and zero animated surface uploads',performanceResult);
   }
   } else {
-    await send('Page.navigate', { url: `${origin}/?toy=jelly-slice` });
+    await send('Page.navigate', { url: `${origin}/?toy=jelly-prism` });
     await waitFor(s => s?.knife?.canCut, 'Audio test page ready');
     await click('button[aria-label^="Enable "]');
     await waitFor(s => s.audio.enabled, 'Audio test user activation');
@@ -305,4 +307,3 @@ try {
   if (socket?.readyState === WebSocket.OPEN) { try { await send('Browser.close', {}, null); } catch {} socket.close(); }
   await delay(300); if (chrome.exitCode === null) chrome.kill();
 }
-

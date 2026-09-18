@@ -56,7 +56,7 @@ Next: compare the feel on a physical phone before selecting final parameters, th
 
 ## Purpose and sequence
 
-Fiddy currently offers simple toys with promising physical interactions; repeat-use appeal remains unproven. First deepen Jelly, Putty and Silk through distinct material behavior, satisfying releases, discoverable gesture depth and usefulness with little visual attention. Evaluate ordinary play independently so rewards cannot conceal weak mechanics.
+Fuppo currently offers simple toys with promising physical interactions; repeat-use appeal remains unproven. First deepen Jelly, Putty and Silk through distinct material behavior, satisfying releases, discoverable gesture depth and usefulness with little visual attention. Evaluate ordinary play independently so rewards cannot conceal weak mechanics.
 
 The roadmap is **material refinement → voluntary-return evidence → Jelly bonus experiment → broader transformations → separate collecting and monetization decisions**.
 

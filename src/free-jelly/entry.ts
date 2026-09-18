@@ -42,6 +42,7 @@ export async function mountFreeBody(host: HTMLElement, context: ToyContext, shap
   let pmrem: THREE.PMREMGenerator | null = null, environment: THREE.RenderTarget | null = null;
   let releaseTextures = () => {};
   let disposed = false, paused = context.preferences.paused, frameId = 0;
+  let soundRevision = 0;
   let wake = () => {};
   physics.reducedMotion = context.preferences.reducedMotion;
   const dispose = () => {
@@ -328,8 +329,12 @@ export async function mountFreeBody(host: HTMLElement, context: ToyContext, shap
       reset: () => { cancel(); physics.reset(); update(); wake(); },
       setPaused: value => { paused = value; if (value) { cancel(); cancelAnimationFrame(frameId); frameId = 0; } lastTime = accumulator = 0; if (!value) wake(); },
       setSound: async enabled => {
+        const revision = ++soundRevision;
         try { await Promise.all([audio.setEnabled(enabled), ...(shape === 'jelly' ? [chimes.setEnabled(enabled)] : [])]); }
-        catch (error) { await audio.setEnabled(false); await chimes.setEnabled(false); throw error; }
+        catch (error) {
+          if (disposed || revision !== soundRevision) return;
+          await Promise.all([audio.setEnabled(false), chimes.setEnabled(false)]); throw error;
+        }
       },
       setVolume: volume => { audio.setVolume(volume); chimes.setVolume(volume); },
       setReducedMotion: value => { physics.reducedMotion = value; wake(); },

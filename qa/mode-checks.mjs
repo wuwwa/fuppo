@@ -61,7 +61,7 @@ export async function checkModes({origin,backend,send,evaluate,state,waitFor,cli
     record('mode controls '+width+'x'+height,{screenshot:await screenshot('modes-'+backend+'-'+width+'x'+height)});
     await choose('resting');
   }
-  await go('toy=dough&mode=free','dough');
+  await go('toy=dough&mode=free','butter');
   assert.equal(await evaluate("!!document.querySelector('.mode-switch')"),false);
   assert.equal(new URL((await state()).url).searchParams.has('mode'),false);
   await evaluate("localStorage.setItem('fiddy-preferences-v1',JSON.stringify({version:1,favoriteIds:['free-jelly','jelly','cushion'],lastToyId:'free-jelly'}))");
